@@ -1,0 +1,58 @@
+{
+  "format": 1,
+  "restore": {
+    "F:\\projects_csharp\\minesweeper-solver\\Minesweeper-Solver.csproj": {}
+  },
+  "projects": {
+    "F:\\projects_csharp\\minesweeper-solver\\Minesweeper-Solver.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "F:\\projects_csharp\\minesweeper-solver\\Minesweeper-Solver.csproj",
+        "projectName": "Minesweeper-Solver",
+        "projectPath": "F:\\projects_csharp\\minesweeper-solver\\Minesweeper-Solver.csproj",
+        "packagesPath": "C:\\Users\\Ian\\.nuget\\packages\\",
+        "outputPath": "F:\\projects_csharp\\minesweeper-solver\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\Ian\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "netcoreapp3.1"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netcoreapp3.1": {
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netcoreapp3.1": {
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.420\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}
