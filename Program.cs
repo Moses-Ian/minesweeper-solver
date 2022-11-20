@@ -13,19 +13,10 @@ namespace Minesweeper_Solver {
 		static int WIDTH = 9;
 		static int HEIGHT = 9;
 		static int SPACING = 18;
+		static sbyte MINES = 10;
 		static string processName = "Minesweeper";
 		static string processLocation = "C:\\Windows\\winsxs\\amd64_microsoft-windows-s..oxgames-minesweeper_31bf3856ad364e35_6.1.7600.16385_none_fe560f0352e04f48\\";
 		static int DELAY = 1500;
-		static int[,] PIXELS = {
-			{1, 0},
-			{1, 1},
-			{3, 3},
-			{3, 4},
-			{4, 2},
-			{4, 3},
-			{4, 4}
-		};
-		static uint GHND = 0x0042;
 		
 		static void Main(string[] args) {
 			// open minesweeper
@@ -40,13 +31,6 @@ namespace Minesweeper_Solver {
 			int row = rnd.Next(WIDTH);
 			int col = rnd.Next(HEIGHT);
 			// click(location, row, col);
-			
-			// convert to matrix
-			// we need a 2D array. 
-			// one row for each square, plus another for the number of mines
-			// one column for each square, plus another for the data in each square
-			byte[,] matrix = new byte[ (WIDTH*HEIGHT+1), (WIDTH*HEIGHT+1) ];
-			// print(matrix);
 			
 			unsafe {
 				// set up variables
@@ -102,21 +86,18 @@ namespace Minesweeper_Solver {
 				);
 				
 				// use the data
-				// the pixels are saved in lpbitmap
-				// [b g r a]
-				// the colors are not exactly the same as what you can get from mspaint, but the idea is there
-				// int _row = FIRST_TOP;
-				// int i=0;
-				// while(i<w) {
-					// Console.WriteLine($"{lpbitmap[_row*w*4+i*4]} {lpbitmap[_row*w*4+i*4+1]} {lpbitmap[_row*w*4+i*4+2]} {lpbitmap[_row*w*4+i*4+3]}");
-					// i+=1;
-				// }
-				// i-=1;
-				// Console.WriteLine(i);
-				
 				int [,] gameState = new int[WIDTH, HEIGHT];
 				getGameState(lpbitmap, gameState, w);
 				print(gameState);
+				
+				// turn the game state into a matrix
+				// convert to matrix
+				// we need a 2D array. 
+				// one row for each square, plus another for the number of mines
+				// one column for each square, plus another for the data in each square
+				sbyte[,] matrix = new sbyte[ (WIDTH*HEIGHT+1), (WIDTH*HEIGHT+1) ];
+				buildMatrix(matrix, gameState);
+				print(matrix);
 				
 				
 				//clean
@@ -379,8 +360,8 @@ namespace Minesweeper_Solver {
 			mouse_event(LEFTUP, 0, 0, 0, 0);
 		}
 		
-		static void print(byte[,] matrix) {
-			int rows = WIDTH*HEIGHT;
+		static void print(sbyte[,] matrix) {
+			int rows = WIDTH*HEIGHT+1;
 			int cols = WIDTH*HEIGHT+1;
 			for(int i=0; i<rows; i++) {
 				StringBuilder sb = new StringBuilder();
@@ -427,21 +408,6 @@ namespace Minesweeper_Solver {
 				// Console.WriteLine(' ');
 			}
 		}
-
-		// static void getGameState(byte[] lpbitmap, int[,] gameState, int w) {
-			// int i=5; int j=5;
-			// gameState[HEIGHT-1-i, j] = getValueAt(lpbitmap, i, j, w);
-			// Console.WriteLine($"guess = {gameState[HEIGHT-1-i, j]}");
-			// i=2; j=3;
-			// gameState[HEIGHT-1-i, j] = getValueAt(lpbitmap, i, j, w);
-			// Console.WriteLine($"guess = {gameState[HEIGHT-1-i, j]}");
-			// i=4; j=1;
-			// gameState[HEIGHT-1-i, j] = getValueAt(lpbitmap, i, j, w);
-			// Console.WriteLine($"guess = {gameState[HEIGHT-1-i, j]}");
-			// i=2; j=4;
-			// gameState[HEIGHT-1-i, j] = getValueAt(lpbitmap, i, j, w);
-			// Console.WriteLine($"guess = {gameState[HEIGHT-1-i, j]}");
-		// }
 
 		static int getValueAt(byte[] lpbitmap, int row, int col, int w) {
 			// Console.WriteLine($"Getting value: {row} {col}");
@@ -637,6 +603,47 @@ namespace Minesweeper_Solver {
 				return 8;
 			// if i think it's empty, return empty; if i think it's unclicked, return unclicked
 			return -1;
+		}
+		
+		static void buildMatrix(sbyte[,] matrix, int[,] gameState) {
+			int len = WIDTH*HEIGHT;
+			
+			// walk the matrix rows
+			for(int mRow=0; mRow<len; mRow++) {
+				// which game element am i talking about?
+				int gRow = mRow / WIDTH;
+				int gCol = mRow % WIDTH;
+				// Console.WriteLine($"gRow={gRow} gCol={gCol}");
+				
+				// if the square is unclicked, skip
+				if (gameState[gRow, gCol] == -1 || gameState[gRow, gCol] == 0)
+					continue;
+				// the value of the square
+				matrix[mRow, len] = (sbyte) gameState[gRow, gCol];
+
+				// get game element's neighbors
+				for(int i=-1; i<=1; i++) {
+					if (gRow+i < 0 || gRow+i == HEIGHT) continue;
+					for(int j=-1; j<=1; j++) {
+						if (i == 0 && j == 0) continue;
+						if (gCol+j < 0 || gCol+j == WIDTH) continue;
+						
+						// Console.WriteLine($"r={gRow+i} c={gCol+j} e={(gRow+i)*WIDTH + gCol+j}");
+						// only set the matrix element to 1 if it's unclicked
+						if (gameState[gRow+i, gCol+j] == -1)
+							matrix[mRow, (gRow+i)*WIDTH + gCol+j] = 1;
+					}
+				}
+			}
+			
+			// the equation for the total number of mines
+			for(int mCol=0; mCol<len; mCol++) {
+				int gRow = mCol / WIDTH;
+				int gCol = mCol % WIDTH;
+				if (gameState[gRow, gCol] == -1)
+					matrix[len, mCol] = 1;
+			}
+			matrix[len, len] = MINES;
 		}
 		
 		// DLL IMPORTS
