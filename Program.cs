@@ -33,20 +33,7 @@ namespace Minesweeper_Solver {
 			p.WaitForInputIdle();
 			
 			// get the window's location
-			Rect location = new Rect();
-			GetWindowRect(p.MainWindowHandle, ref location);
-			SetCursorPos(location.Left + FIRST_LEFT, location.Top + FIRST_TOP);
-			Thread.Sleep(500);
-			SetCursorPos(
-				location.Left + FIRST_LEFT + (WIDTH-1)*SPACING, 
-				location.Top  + FIRST_TOP  + (HEIGHT-1)*SPACING
-			);
-			Thread.Sleep(500);
-			SetCursorPos(0, 0);
-			
-			//test
-			// SetCursorPos(location.Left + FIRST_LEFT + SPACING, location.Top + FIRST_TOP);
-			// return;
+			Rect location = getLocation(p.MainWindowHandle);
 			
 			// click a random square
 			Random rnd = new Random();
@@ -61,33 +48,8 @@ namespace Minesweeper_Solver {
 			byte[,] matrix = new byte[ (WIDTH*HEIGHT+1), (WIDTH*HEIGHT+1) ];
 			// print(matrix);
 			
-			// get current game state
-			// var watch = new System.Diagnostics.Stopwatch();
-			// watch.Start();
-			
-			// int[,] gameState = new int[ HEIGHT, WIDTH ];
-			// getGameState(location, gameState);
-			
-			// watch.Stop();
-			
-			// print(gameState);
-			// Console.WriteLine($"Execution Time: {watch.ElapsedMilliseconds} ms");
-			
-			int elementSize = Marshal.SizeOf(typeof(IntPtr));
-			IntPtr unmanagedArray = Marshal.AllocHGlobal(10 * elementSize);
-			
-			for(int i=0; i<10; i++)
-				Console.WriteLine(Marshal.ReadIntPtr(unmanagedArray, i*elementSize));
-
-			for(int i=0; i<10; i++)
-				Marshal.WriteIntPtr(unmanagedArray, i*elementSize, ((IntPtr)(i+1)));
-			
-			for(int i=0; i<10; i++)
-				Console.WriteLine(Marshal.ReadIntPtr(unmanagedArray, i*elementSize));
-			
-			Marshal.FreeHGlobal(unmanagedArray);
-
 			unsafe {
+				// set up variables
 				int w = location.Right - location.Left;
 				int h = location.Bottom - location.Top;
 				IntPtr hdcScreen = GetDesktopWindow();
@@ -96,9 +58,9 @@ namespace Minesweeper_Solver {
 				Rect rcClient = location;
 				IntPtr hbmScreen = CreateCompatibleBitmap(hdcWindow, rcClient.Right-rcClient.Left, rcClient.Bottom-rcClient.Top);
 
-
 				SelectObject(hdcMemDC, hbmScreen);
 				
+				// copy data
 				bool result = BitBlt(
 					// to
 					hdcMemDC, 0, 0, rcClient.Right-rcClient.Left, rcClient.Bottom-rcClient.Top,
@@ -107,17 +69,14 @@ namespace Minesweeper_Solver {
 					// command
 					TernaryRasterOperations.SRCCOPY
 				);
-				Console.WriteLine(result.ToString());
 
 				BITMAP bmpScreen = new BITMAP();
 				GCHandle hndl = GCHandle.Alloc(bmpScreen, GCHandleType.Pinned);
 				IntPtr ptrToBitmap = hndl.AddrOfPinnedObject();
-				int result2 = GetObject(hbmScreen, Marshal.SizeOf<BITMAP>(), ptrToBitmap);
+				GetObject(hbmScreen, Marshal.SizeOf<BITMAP>(), ptrToBitmap);
 				bmpScreen = Marshal.PtrToStructure<BITMAP>(ptrToBitmap);
 				hndl.Free();
 				
-				Console.WriteLine($"GetObject: {result2}");
-
 				BITMAPINFOHEADER bi = new BITMAPINFOHEADER();
 				bi.biSize = (uint) sizeof(BITMAPINFOHEADER);
 				bi.biWidth = bmpScreen.bmWidth;
@@ -130,33 +89,35 @@ namespace Minesweeper_Solver {
 				bi.biClrImportant = 0;
 				
 				int dwBmpSize = ((bmpScreen.bmWidth * bi.biBitCount + 31) / 32) * 4 * bmpScreen.bmHeight;
-				// IntPtr hDIB = GlobalAlloc(GHND, dwBmpSize);
 				byte[] lpbitmap = new byte[dwBmpSize];
 				
 				BITMAPINFO bmi = new BITMAPINFO();
 				bmi.bmiHeader = bi;
 
-				int result3 = GetDIBits(
+				GetDIBits(
 					hdcWindow, hbmScreen, 0, 
 					(uint) h,
 					lpbitmap, 
 					ref bmi, DIB_Color_Mode.DIB_RGB_COLORS
 				);
 				
-				Console.WriteLine($"GetDIBits: {result3}");
+				// use the data
+				// the pixels are saved in lpbitmap
+				// [b g r a]
+				// the colors are not exactly the same as what you can get from mspaint, but the idea is there
+				// int _row = FIRST_TOP;
+				// int i=0;
+				// while(i<w) {
+					// Console.WriteLine($"{lpbitmap[_row*w*4+i*4]} {lpbitmap[_row*w*4+i*4+1]} {lpbitmap[_row*w*4+i*4+2]} {lpbitmap[_row*w*4+i*4+3]}");
+					// i+=1;
+				// }
+				// i-=1;
+				// Console.WriteLine(i);
 				
-				Color c = GetColorAt(hdcWindow, location.Left, location.Top);
-				Console.WriteLine(c.ToString());
+				int [,] gameState = new int[WIDTH, HEIGHT];
+				getGameState(lpbitmap, gameState, w);
+				print(gameState);
 				
-				int _row = 200;
-				int i=0;
-				while(i<w*4) {
-					Console.WriteLine($"{lpbitmap[_row*w*4+i]} {lpbitmap[_row*w*4+i+1]} {lpbitmap[_row*w*4+i+2]} {lpbitmap[_row*w*4+i+3]}");
-					i+=4;
-				}
-				i-=4;
-				// Console.WriteLine($"{lpbitmap[i]} {lpbitmap[i+1]} {lpbitmap[i+2]}");
-				Console.WriteLine(i/4);
 				
 				//clean
 				DeleteObject(hbmScreen);
@@ -363,6 +324,20 @@ namespace Minesweeper_Solver {
 		}
 
 		// METHODS
+		static Rect getLocation(IntPtr mainWindowHandle) {
+			Rect location = new Rect();
+			GetWindowRect(mainWindowHandle, ref location);
+			// SetCursorPos(location.Left + FIRST_LEFT, location.Top + FIRST_TOP);
+			// Thread.Sleep(500);
+			// SetCursorPos(
+				// location.Left + FIRST_LEFT + (WIDTH-1)*SPACING, 
+				// location.Top  + FIRST_TOP  + (HEIGHT-1)*SPACING
+			// );
+			// Thread.Sleep(500);
+			SetCursorPos(0, 0);
+			return location;
+		}
+		
 		static Process openProcess(string name, string location) {
 			int SW_SHOWNORMAL = 1;
 
@@ -435,48 +410,50 @@ namespace Minesweeper_Solver {
 					else
 						sb.Append(matrix[i, j].ToString());
 				}
-				sb.Append(']');
+				sb.Append(" ]");
 				Console.WriteLine(sb.ToString());
 			}
 		}
 
-		static void getGameState(Rect location, int[,] gameState) {
-			// lock the desktop
-			IntPtr desk = GetDesktopWindow();
-			IntPtr dc = GetWindowDC(desk);
-			
+		static void getGameState(byte[] lpbitmap, int[,] gameState, int w) {
 			// analyze pixels
-			for(int i=2; i<HEIGHT-1; i++) {
-				for(int j=1; j<WIDTH-3; j++) {
-					gameState[i, j] = getValueAt(dc, location, i, j);
+			for(int i=0; i<HEIGHT; i++) {
+				for(int j=0; j<WIDTH; j++) {
+					// the jank here is because the lpbitmap is upside down
+					gameState[HEIGHT-1-i, j] = getValueAt(lpbitmap, i, j, w);
 				}
 			}
-			
-			// release the desktop
-			ReleaseDC(desk, dc);
 		}
 
-		static int getValueAt(IntPtr dc, Rect location, int row, int col) {
-			Console.WriteLine($"Getting value: {row} {col}");
-			int screenX = location.Left + FIRST_LEFT + SPACING*col;
-			int screenY = location.Top + FIRST_TOP + SPACING*row;
+		static int getValueAt(byte[] lpbitmap, int row, int col, int w) {
+			// Console.WriteLine($"Getting value: {row} {col}");
+			int pixelX = FIRST_LEFT + SPACING*col;
+			int pixelY = FIRST_TOP-(SPACING*2) + SPACING*row;
 			int guess = -1;	// -1 means unclicked
-			for(int i=0; i<7; i++) {
-				Color c = GetColorAt(dc, screenX+PIXELS[i, 0], screenY+PIXELS[i, 1]);
-				double hue, saturation, value;
-				ColorToHSV(c, out hue, out saturation, out value);
-				guess = makeGuess(guess, hue, saturation , value);
-				if (guess != -1 && guess != 0)
-					return guess;
+			// Console.WriteLine($"Pixels {pixelX} {pixelY}");
+			for(int i=0; i<3; i++) {
+				for(int j=0; j<3; j++) {
+					Color c = getColorAt(lpbitmap, pixelX+j, pixelY+i, w);
+					// Console.WriteLine(c.ToString());
+					double hue, saturation, value;
+					ColorToHSV(c, out hue, out saturation, out value);
+					hue = Math.Floor(hue*100) / 100;
+					saturation = Math.Floor(saturation*100) / 100;
+					value = Math.Floor(value*100) / 100;
+					// Console.WriteLine($"[h={hue} s={saturation} v={value}]");
+					guess = makeGuess(guess, hue, saturation , value);
+					if (guess != -1 && guess != 0)
+						return guess;
+				}
 			}
 			return guess;
 		}
 
-		static Color GetColorAt(IntPtr dc, int x, int y) {
-			// x and y are screen pixel values
-			int a = (int) GetPixel(dc, x, y);
-			// int a = 0;		// just to check -> the GetPixel method is REALLY slow
-			return Color.FromArgb(255, (a >> 0) & 0xff, (a >> 8) & 0xff, (a >> 16) & 0xff);
+		static Color getColorAt(byte[] lpbitmap, int x, int y, int w) {
+			int index = y*w*4 + x*4;
+			// Console.WriteLine(index);
+			// lpbitmap stores data as [bgra], so it needs to be flipped
+			return Color.FromArgb(lpbitmap[index+3], lpbitmap[index+2], lpbitmap[index+1], lpbitmap[index]);
 		}
 		
 		static void ColorToHSV(Color color, out double hue, out double saturation, out double value)	{
