@@ -420,19 +420,38 @@ namespace Minesweeper_Solver {
 			for(int i=0; i<HEIGHT; i++) {
 				for(int j=0; j<WIDTH; j++) {
 					// the jank here is because the lpbitmap is upside down
-					gameState[HEIGHT-1-i, j] = getValueAt(lpbitmap, i, j, w);
+					// gameState[HEIGHT-1-i, j] = getValueAt(lpbitmap, i, j, w);
+					gameState[HEIGHT-1-i, j] = getValueAt2(lpbitmap, i, j, w);
+					// Console.WriteLine($"guess = {gameState[HEIGHT-1-i, j]}");
 				}
+				// Console.WriteLine(' ');
 			}
 		}
+
+		// static void getGameState(byte[] lpbitmap, int[,] gameState, int w) {
+			// int i=5; int j=5;
+			// gameState[HEIGHT-1-i, j] = getValueAt(lpbitmap, i, j, w);
+			// Console.WriteLine($"guess = {gameState[HEIGHT-1-i, j]}");
+			// i=2; j=3;
+			// gameState[HEIGHT-1-i, j] = getValueAt(lpbitmap, i, j, w);
+			// Console.WriteLine($"guess = {gameState[HEIGHT-1-i, j]}");
+			// i=4; j=1;
+			// gameState[HEIGHT-1-i, j] = getValueAt(lpbitmap, i, j, w);
+			// Console.WriteLine($"guess = {gameState[HEIGHT-1-i, j]}");
+			// i=2; j=4;
+			// gameState[HEIGHT-1-i, j] = getValueAt(lpbitmap, i, j, w);
+			// Console.WriteLine($"guess = {gameState[HEIGHT-1-i, j]}");
+		// }
 
 		static int getValueAt(byte[] lpbitmap, int row, int col, int w) {
 			// Console.WriteLine($"Getting value: {row} {col}");
 			int pixelX = FIRST_LEFT + SPACING*col;
 			int pixelY = FIRST_TOP-(SPACING*2) + SPACING*row;
 			int guess = -1;	// -1 means unclicked
+			bool sawGrey = false;
 			// Console.WriteLine($"Pixels {pixelX} {pixelY}");
-			for(int i=0; i<3; i++) {
-				for(int j=0; j<3; j++) {
+			for(int i=-2; i<3; i++) {
+				for(int j=-2; j<3; j++) {
 					Color c = getColorAt(lpbitmap, pixelX+j, pixelY+i, w);
 					// Console.WriteLine(c.ToString());
 					double hue, saturation, value;
@@ -440,13 +459,56 @@ namespace Minesweeper_Solver {
 					hue = Math.Floor(hue*100) / 100;
 					saturation = Math.Floor(saturation*100) / 100;
 					value = Math.Floor(value*100) / 100;
-					// Console.WriteLine($"[h={hue} s={saturation} v={value}]");
-					guess = makeGuess(guess, hue, saturation , value);
+					// if (hue > 340 && hue < 360)
+						// Console.WriteLine($"[h={hue} s={saturation} v={value}]");
+					// guess = makeGuess(guess, hue, saturation , value, ref sawGrey);
+					guess = makeGuess2(guess, hue, saturation , value, ref sawGrey);
 					if (guess != -1 && guess != 0)
 						return guess;
 				}
 			}
 			return guess;
+		}
+		
+		static int getValueAt2(byte[] lpbitmap, int row, int col, int w) {
+			// Console.WriteLine($"Getting value: {row} {col}");
+			int pixelX = FIRST_LEFT + SPACING*col;
+			int pixelY = FIRST_TOP-(SPACING*2) + SPACING*row;		// this fuckery is due to the pixels being backwards
+			int guess = -1; // -1 means unclicked
+			bool sawGrey = false;
+			int r=0, g=0, b=0;
+			int index;
+			int count = 0;;
+			for(int i=-3; i<3; i++) {
+				for(int j=-2; j<3; j++) {
+					Color c = getColorAt(lpbitmap, pixelX+j, pixelY+i, w);
+					double hue, saturation, value;
+					ColorToHSV(c, out hue, out saturation, out value);
+					if (saturation < .17) {
+						sawGrey = true;
+						continue;
+					}
+					r += c.R;
+					g += c.G;
+					b += c.B;
+					count++;
+				}
+			}
+			if (count == 0)
+				return 0;
+			r /= count;
+			g /= count;
+			b /= count;
+			Color c2 = Color.FromArgb(r,g,b);
+			double h, s, v;
+			ColorToHSV(c2, out h, out s, out v);
+			h = Math.Floor(h);
+			s = Math.Floor(s*100)/100;
+			v = Math.Floor(s*100)/100;
+			// Console.WriteLine($"{row} {col} [h={h} s={s} v={v}]");
+			// Console.WriteLine($"[r={r} g={g} b={b}]");
+			
+			return makeGuess3(h, s, v, sawGrey);
 		}
 
 		static Color getColorAt(byte[] lpbitmap, int x, int y, int w) {
@@ -465,40 +527,116 @@ namespace Minesweeper_Solver {
 			value = max / 255d;
 		}
 		
- 		static int makeGuess(int guess, double h, double s, double v) {
+ 		static int makeGuess(int guess, double h, double s, double v, ref bool sawGrey) {
 			// 3, 5, 7, and 8 are all red, but have slightly different hsv values
 			
 			// these numbers were determined by closely analyzing the colors as they appear in my game
 			
 			// guess empty
-			if (s < .15)
+			if (s > .10 && s < .15 && v > .80) {
+				sawGrey = true;
 				return 0;
+			}
 			// guess 1
-			if (h > 230 && h < 240 && s > .50 && v > .70)
+			if (sawGrey && h > 220 && h < 240 && s > .50 && v > .70)
 				return 1;
 			// guess 2
 			if (h > 100 && h < 140) 
 				return 2;
 			// guess 3
-			if (h > 330 && h < 350 && s < .30 && v > .50 && v < .60)
+			if (h > 345 && h < 360 && s < .70 && v > .60 && v < .80)
 				return 3;
 			// guess 4
-			if (h > 230 && h < 240 && s > .50 && v < .70)
+			if (sawGrey && h > 220 && h < 2500 && s > .50)
 				return 4;
 			// guess 5
-			if (h > 340 && h < 350 && s > .40 && v <= .50)
+			if (h > 350 && h < 360 && s > .50 && s < .90 && v < .60)
 				return 5;
 			// guess 6
-			if (h > 180 && h < 200)
+			if (h > 180 && h < 200 && s > .15)
 				return 6;
 			// guess 7
-			if (h > 340 && h < 350 && s < .30 && v > .60)
+			if (h > 350 && h < 3600 && s > .90)
 				return 7;
 			// guess 8
-			if (h > 340 && h < 350 && s > .30 && s < .40 && v > .60)
+			if (h > 350 && h < 360 && s > .60 && v < .80)
 				return 8;
 			// if i think it's empty, return empty; if i think it's unclicked, return unclicked
 			return guess;
+		}
+		
+		static int makeGuess2(int guess, double h, double s, double v, ref bool sawGrey) {
+			// guess 0
+			if (s < .15) {
+				sawGrey = true;
+				return 0;
+			}
+			
+			// guess 1
+			if (sawGrey && s > .40 && s < .55 && h < 340 && v > .70 && v < .90)
+				return 1;
+			
+			// guess 2
+			if (h > 110 && h < 130)
+				return 2;
+			
+			// guess 3
+			if (h > 350 && h < 360)
+				return 3;
+			
+			// guess 4
+			if (v > .50 && v < .70 && h > 230)
+				return 4;
+			
+			// guess 5
+			
+			// guess 6
+			
+			// guess 7
+			
+			// guess 8
+			
+			// guess -1
+			return -1;
+		}
+		
+ 		static int makeGuess3(double h, double s, double v, bool sawGrey) {
+			if (!sawGrey)
+				return -1;
+			// 3, 5, 7, and 8 are all red, but have slightly different hsv values
+			
+			// these numbers were determined by closely analyzing the colors as they appear in my game
+			
+			// guess empty
+			if (s > .10 && s < .17 && v > .80) {
+				return 0;
+			}
+			// guess 1
+			if (h > 220 && h < 240 && s > .39 && v < .50)
+				return 1;
+			// guess 2
+			if (h > 100 && h < 140) 
+				return 2;
+			// guess 3
+			if (h > 350 && h <= 357 && s <= .77 && v <= .77)
+				return 3;
+			// guess 4
+			if (h > 220 && h < 250 && s > .50 && v > .50)
+				return 4;
+			// guess 5
+			if (h >= 358 && h < 359 && s >= .76 && v >= .76)
+				return 5;
+			// guess 6
+			if (h > 180 && h < 200 && s > .15)
+				return 6;
+			// guess 7
+			if (h >= 358 && h < 360 && s <= .75 && v <= .75)
+				return 7;
+			// guess 8
+			if (h >= 359 && h <= 360 && s >= .85 && v >= .85)
+				return 8;
+			// if i think it's empty, return empty; if i think it's unclicked, return unclicked
+			return -1;
 		}
 		
 		// DLL IMPORTS
