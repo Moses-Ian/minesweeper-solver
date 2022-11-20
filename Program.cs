@@ -9,13 +9,22 @@ using System.Drawing.Imaging;
 namespace Minesweeper_Solver {
 	class Program {
 		static int FIRST_TOP = 90;
-		static int FIRST_LEFT = 50;
+		static int FIRST_LEFT = 45;
 		static int WIDTH = 9;
 		static int HEIGHT = 9;
 		static int SPACING = 18;
 		static string processName = "Minesweeper";
 		static string processLocation = "C:\\Windows\\winsxs\\amd64_microsoft-windows-s..oxgames-minesweeper_31bf3856ad364e35_6.1.7600.16385_none_fe560f0352e04f48\\";
 		static int DELAY = 1500;
+		static int[,] PIXELS = {
+			{1, 0},
+			{1, 1},
+			{3, 3},
+			{3, 4},
+			{4, 2},
+			{4, 3},
+			{4, 4}
+		};
 		
 		static void Main(string[] args) {
 			// open minesweeper
@@ -32,23 +41,36 @@ namespace Minesweeper_Solver {
 				location.Top  + FIRST_TOP  + (HEIGHT-1)*SPACING
 			);
 			Thread.Sleep(500);
+			SetCursorPos(location.Left, location.Top);
+			
+			//test
+			// SetCursorPos(location.Left + FIRST_LEFT + SPACING, location.Top + FIRST_TOP);
+			// return;
 			
 			// click a random square
 			Random rnd = new Random();
-			int x = rnd.Next(WIDTH);
-			int y = rnd.Next(HEIGHT);
-			click(location, x, y);
+			int row = rnd.Next(WIDTH);
+			int col = rnd.Next(HEIGHT);
+			// click(location, row, col);
 			
 			// convert to matrix
-			// we need a 2D array. one row for each square, and one column for each square plus another for the data in each square
-			byte[,] matrix = new byte[ (WIDTH*HEIGHT), (WIDTH*HEIGHT+1) ];
+			// we need a 2D array. 
+			// one row for each square, plus another for the number of mines
+			// one column for each square, plus another for the data in each square
+			byte[,] matrix = new byte[ (WIDTH*HEIGHT+1), (WIDTH*HEIGHT+1) ];
 			// print(matrix);
 			
-			// get color of the pixels
-			Color color = GetColorAt(location.Left + FIRST_LEFT, location.Top + FIRST_TOP);
-			Console.WriteLine(color.ToString());
+			// get current game state
+			var watch = new System.Diagnostics.Stopwatch();
+			watch.Start();
 			
-			// find image inside image
+			int[,] gameState = new int[ HEIGHT, WIDTH ];
+			getGameState(location, gameState);
+			
+			watch.Stop();
+			
+			print(gameState);
+			Console.WriteLine($"Execution Time: {watch.ElapsedMilliseconds} ms");
 			
 			
 			
@@ -104,12 +126,12 @@ namespace Minesweeper_Solver {
 			return p;
 		}	
 		
-		static void click(Rect location, int x, int y) {
+		static void click(Rect location, int row, int col) {
 			int LEFTDOWN = 0x00000002;
 			int LEFTUP =   0x00000004;
 			SetCursorPos(
-				location.Left + FIRST_LEFT + SPACING * x, 
-				location.Top  + FIRST_TOP  + SPACING * y
+				location.Left + FIRST_LEFT + SPACING * col, 
+				location.Top  + FIRST_TOP  + SPACING * row
 			);
 			mouse_event(LEFTDOWN, 0, 0, 0, 0);
 			mouse_event(LEFTUP, 0, 0, 0, 0);
@@ -132,13 +154,107 @@ namespace Minesweeper_Solver {
 			}
 		}
 
-		public static Color GetColorAt(int x, int y)
-		{
-				IntPtr desk = GetDesktopWindow();
-				IntPtr dc = GetWindowDC(desk);
-				int a = (int) GetPixel(dc, x, y);
-				ReleaseDC(desk, dc);
-				return Color.FromArgb(255, (a >> 0) & 0xff, (a >> 8) & 0xff, (a >> 16) & 0xff);
+		static void print(int[,] matrix) {
+			int rows = matrix.GetLength(0);
+			int cols = matrix.GetLength(1);
+			for(int i=0; i<rows; i++) {
+				StringBuilder sb = new StringBuilder();
+				sb.Append("[ ");
+				for(int j=0; j<cols; j++) {
+					if (matrix[i, j] == -1) 
+						sb.Append('X');
+					else if (matrix[i, j] == 0)
+						sb.Append(' ');
+					else
+						sb.Append(matrix[i, j].ToString());
+				}
+				sb.Append(']');
+				Console.WriteLine(sb.ToString());
+			}
+		}
+
+		static void getGameState(Rect location, int[,] gameState) {
+			// lock the desktop
+			IntPtr desk = GetDesktopWindow();
+			IntPtr dc = GetWindowDC(desk);
+			
+			// analyze pixels
+			for(int i=2; i<HEIGHT-1; i++) {
+				for(int j=1; j<WIDTH-3; j++) {
+					gameState[i, j] = getValueAt(dc, location, i, j);
+				}
+			}
+			
+			// release the desktop
+			ReleaseDC(desk, dc);
+		}
+
+		static int getValueAt(IntPtr dc, Rect location, int row, int col) {
+			Console.WriteLine($"Getting value: {row} {col}");
+			int screenX = location.Left + FIRST_LEFT + SPACING*col;
+			int screenY = location.Top + FIRST_TOP + SPACING*row;
+			int guess = -1;	// -1 means unclicked
+			for(int i=0; i<7; i++) {
+				Color c = GetColorAt(dc, screenX+PIXELS[i, 0], screenY+PIXELS[i, 1]);
+				double hue, saturation, value;
+				ColorToHSV(c, out hue, out saturation, out value);
+				guess = makeGuess(guess, hue, saturation , value);
+				if (guess != -1 && guess != 0)
+					return guess;
+			}
+			return guess;
+		}
+
+		static Color GetColorAt(IntPtr dc, int x, int y) {
+			// x and y are screen pixel values
+			int a = (int) GetPixel(dc, x, y);
+			// int a = 0;		// just to check -> the GetPixel method is REALLY slow
+			return Color.FromArgb(255, (a >> 0) & 0xff, (a >> 8) & 0xff, (a >> 16) & 0xff);
+		}
+		
+		static void ColorToHSV(Color color, out double hue, out double saturation, out double value)	{
+			int max = Math.Max(color.R, Math.Max(color.G, color.B));
+			int min = Math.Min(color.R, Math.Min(color.G, color.B));
+
+			hue = color.GetHue();
+			saturation = (max == 0) ? 0 : 1d - (1d * min / max);
+			value = max / 255d;
+		}
+		
+ 		static int makeGuess(int guess, double h, double s, double v) {
+			// 3, 5, 7, and 8 are all red, but have slightly different hsv values
+			
+			// these numbers were determined by closely analyzing the colors as they appear in my game
+			
+			// guess empty
+			if (s < .15)
+				return 0;
+			// guess 1
+			if (h > 230 && h < 240 && s > .50 && v > .70)
+				return 1;
+			// guess 2
+			if (h > 100 && h < 140) 
+				return 2;
+			// guess 3
+			if (h > 330 && h < 350 && s < .30 && v > .50 && v < .60)
+				return 3;
+			// guess 4
+			if (h > 230 && h < 240 && s > .50 && v < .70)
+				return 4;
+			// guess 5
+			if (h > 340 && h < 350 && s > .40 && v <= .50)
+				return 5;
+			// guess 6
+			if (h > 180 && h < 200)
+				return 6;
+			// guess 7
+			if (h > 340 && h < 350 && s < .30 && v > .60)
+				return 7;
+			// guess 8
+			if (h > 340 && h < 350 && s > .30 && s < .40 && v > .60)
+				return 8;
+			// if i think it's empty, return empty; if i think it's unclicked, return unclicked
+			return guess;
 		}
 		
 		// DLL IMPORTS
