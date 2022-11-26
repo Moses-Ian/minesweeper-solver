@@ -1,8 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "LnOv2IPcY++DiEFLrhLBg/HKHoIVA/1bu9y+jg2RV0MbKrZgHMt+FZE4/N1YF/yx6pdhh0pWC67V6NcMeyIrhg==",
+  "dgSpecHash": "RjNhIHdpVb+KZeoJppED/TFrnuLWysHe5JBpo6dMf6bxUVVgLQEfjdjCQ6WgYfYUJmqyAI7UW7oku36KykjQ1g==",
   "success": true,
   "projectFilePath": "F:\\projects_csharp\\minesweeper-solver\\Minesweeper-Solver.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "C:\\Users\\IMoses\\.nuget\\packages\\microsoft.netcore.app.ref\\3.1.0\\microsoft.netcore.app.ref.3.1.0.nupkg.sha512",
+    "C:\\Users\\IMoses\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\3.1.0\\microsoft.windowsdesktop.app.ref.3.1.0.nupkg.sha512",
+    "C:\\Users\\IMoses\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\3.1.10\\microsoft.aspnetcore.app.ref.3.1.10.nupkg.sha512",
+    "C:\\Users\\IMoses\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\3.1.31\\microsoft.netcore.app.host.win-x64.3.1.31.nupkg.sha512"
+  ],
   "logs": []
 }

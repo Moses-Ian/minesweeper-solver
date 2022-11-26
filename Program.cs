@@ -14,15 +14,15 @@ namespace Minesweeper_Solver {
 		static int HEIGHT = 9;
 		static int SPACING = 18;
 		static sbyte MINES = 10;
-		static string processName = "Minesweeper";
-		static string processLocation = "C:\\Windows\\winsxs\\amd64_microsoft-windows-s..oxgames-minesweeper_31bf3856ad364e35_6.1.7600.16385_none_fe560f0352e04f48\\";
+		static string processName = "MinesweeperClassic.exe";
+		static string processLocation = "C:\\Program Files\\WindowsApps\\61424ShailendraSinghSoftw.44386E29E9F0D_1.0.0.0_x64__wr4tvb9qd6vv4\\MinesweeperClassic";
 		static int DELAY = 1500;
 		
 		static void Main(string[] args) {
 			// open minesweeper
 			Process p = openProcess(processName, processLocation);
 			p.WaitForInputIdle();
-			
+			return;
 			// get the window's location
 			Rect location = getLocation(p.MainWindowHandle);
 			

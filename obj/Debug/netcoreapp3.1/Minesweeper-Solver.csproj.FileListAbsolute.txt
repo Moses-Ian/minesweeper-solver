@@ -4,7 +4,8 @@ F:\projects_csharp\minesweeper-solver\bin\Debug\netcoreapp3.1\Minesweeper-Solver
 F:\projects_csharp\minesweeper-solver\bin\Debug\netcoreapp3.1\Minesweeper-Solver.runtimeconfig.dev.json
 F:\projects_csharp\minesweeper-solver\bin\Debug\netcoreapp3.1\Minesweeper-Solver.dll
 F:\projects_csharp\minesweeper-solver\bin\Debug\netcoreapp3.1\Minesweeper-Solver.pdb
-F:\projects_csharp\minesweeper-solver\obj\Debug\netcoreapp3.1\Minesweeper-Solver.csprojAssemblyReference.cache
+F:\projects_csharp\minesweeper-solver\obj\Debug\netcoreapp3.1\Minesweeper-Solver.csproj.AssemblyReference.cache
+F:\projects_csharp\minesweeper-solver\obj\Debug\netcoreapp3.1\Minesweeper-Solver.GeneratedMSBuildEditorConfig.editorconfig
 F:\projects_csharp\minesweeper-solver\obj\Debug\netcoreapp3.1\Minesweeper-Solver.AssemblyInfoInputs.cache
 F:\projects_csharp\minesweeper-solver\obj\Debug\netcoreapp3.1\Minesweeper-Solver.AssemblyInfo.cs
 F:\projects_csharp\minesweeper-solver\obj\Debug\netcoreapp3.1\Minesweeper-Solver.csproj.CoreCompileInputs.cache
