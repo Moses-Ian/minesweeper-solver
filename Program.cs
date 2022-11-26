@@ -14,18 +14,30 @@ namespace Minesweeper_Solver {
 		static int HEIGHT = 9;
 		static int SPACING = 18;
 		static sbyte MINES = 10;
-		static string processName = "MinesweeperClassic.exe";
-		static string processLocation = "C:\\Program Files\\WindowsApps\\61424ShailendraSinghSoftw.44386E29E9F0D_1.0.0.0_x64__wr4tvb9qd6vv4\\MinesweeperClassic";
+		// static string processName = "MinesweeperClassic.exe";
+		// static string processLocation = "C:\\Program Files\\WindowsApps\\61424ShailendraSinghSoftw.44386E29E9F0D_1.0.0.0_x64__wr4tvb9qd6vv4\\MinesweeperClassic";
+		static string pathToHTMLFile = ".\\p5-minesweeper\\index.html";
 		static int DELAY = 1500;
 		
 		static void Main(string[] args) {
 			// open minesweeper
-			Process p = openProcess(processName, processLocation);
+			Process p = new Process();
+			p.StartInfo = new ProcessStartInfo(pathToHTMLFile) {
+				UseShellExecute = true
+			};
+			p.Start();
 			p.WaitForInputIdle();
-			return;
 			// get the window's location
+			Console.WriteLine(p.MainWindowHandle);
 			Rect location = getLocation(p.MainWindowHandle);
 			
+			// verify window location
+			Console.WriteLine($"{location.Left} {location.Top} {location.Right} {location.Bottom}");
+			SetCursorPos(location.Left, location.Top);
+			return;
+			
+			
+			return;
 			// click a random square
 			Random rnd = new Random();
 			int row = rnd.Next(WIDTH);
@@ -315,7 +327,7 @@ namespace Minesweeper_Solver {
 				// location.Top  + FIRST_TOP  + (HEIGHT-1)*SPACING
 			// );
 			// Thread.Sleep(500);
-			SetCursorPos(0, 0);
+			// SetCursorPos(0, 0);
 			return location;
 		}
 		
