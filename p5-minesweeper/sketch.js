@@ -35,6 +35,8 @@ function setup() {
 		// grid[i][0].revealed = true;
 		// grid[i][0].mine = false;
 	// }
+	// grid[9][0].revealed = true;
+	// grid[9][0].mine = true;
 	
 	
 }

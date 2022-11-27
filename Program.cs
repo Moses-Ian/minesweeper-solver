@@ -20,10 +20,11 @@ namespace Minesweeper_Solver {
 		static int FIRST_LEFT = 45;
 		// static int WIDTH = 30;
 		// static int HEIGHT = 16;
+		// static sbyte MINES = 99;
 		static int WIDTH = 9;
 		static int HEIGHT = 9;
-		static int SPACING = 20;
 		static sbyte MINES = 10;
+		static int SPACING = 20;
 		// static string processName = "MinesweeperClassic.exe";
 		// static string processLocation = "C:\\Program Files\\WindowsApps\\61424ShailendraSinghSoftw.44386E29E9F0D_1.0.0.0_x64__wr4tvb9qd6vv4\\MinesweeperClassic";
 		static int DELAY = 1500;
@@ -59,67 +60,68 @@ namespace Minesweeper_Solver {
 			int canvasX = canvas.Location.X;
 			int canvasY = canvas.Location.Y;
 			
+			// setup matrices
+			int [,] gameState = new int[HEIGHT, WIDTH];
+				// one row for each square, plus another for the number of mines
+				// one column for each square, plus another for the data in each square
+			sbyte[,] matrix = new sbyte[ WIDTH*HEIGHT+1, WIDTH*HEIGHT+1 ];
+			int[,] safeSquares = new int[HEIGHT*WIDTH, 2];
+			byte[] byteArray;
+			Bitmap screenshot;
+			Rectangle crop = new Rectangle(canvasX, canvasY, canvasWidth, canvasHeight);
+			
 			// first click
 			initialClicks();
 			
 			// take screenshot
+			while(true) {
+			// for(int runs=1; runs<=2; runs++) {
+				byteArray = ((ITakesScreenshot)driver).GetScreenshot().AsByteArray;
+				screenshot = new System.Drawing.Bitmap(new System.IO.MemoryStream(byteArray));
+				screenshot = screenshot.Clone(crop, screenshot.PixelFormat);
 				
-			string fileName = DateTime.Now.ToString("yyy-MM-dd HH-mm-ss") + ".png";
-			
-			byte[] byteArray = ((ITakesScreenshot)driver).GetScreenshot().AsByteArray;
-			Bitmap screenshot = new System.Drawing.Bitmap(new System.IO.MemoryStream(byteArray));
-			Rectangle crop = new Rectangle(canvasX, canvasY, canvasWidth, canvasHeight);
-			screenshot = screenshot.Clone(crop, screenshot.PixelFormat);
-			// screenshot.Save(String.Format(@"path" + fileName, System.Drawing.Imaging.ImageFormat.Png));
-			Color c = screenshot.GetPixel(10, 10);
-			Console.WriteLine(c.ToString());
-			
-			// get all the colors
-			// for(int i=0; i<=9; i++) {
-				// c = screenshot.GetPixel(13, i*20+10);
-				// double hue, saturation, value;
-				// ColorToHSV(c, out hue, out saturation, out value);
-				// int guess = makeGuess(hue, saturation, value);
-				// Console.WriteLine($"{i} [h={hue} s={saturation} v={value}] {guess}");
-			// }
-			
-			// use the data
-			int [,] gameState = new int[HEIGHT, WIDTH];
-			getGameState(screenshot, gameState);
-			print(gameState);
-			
-			// turn the game state into a matrix
-			// convert to matrix
-			// we need a 2D array. 
-			// one row for each square, plus another for the number of mines
-			// one column for each square, plus another for the data in each square
-			sbyte[,] matrix = new sbyte[ WIDTH*HEIGHT+1, WIDTH*HEIGHT+1 ];
-			buildMatrix(matrix, gameState);
-			print(matrix);
+				// get all the colors
+				// for(int i=0; i<=10; i++) {
+					// Color c = screenshot.GetPixel(13, i*20+10);
+					// double hue, saturation, value;
+					// ColorToHSV(c, out hue, out saturation, out value);
+					// int guess = makeGuess(hue, saturation, value);
+					// Console.WriteLine($"{i} [h={hue} s={saturation} v={value}] {guess}");
+				// }
 				
-			// reduce matrix
-			reduce(matrix);
+				// use the data
+				bool result = getGameState(screenshot, gameState);
+				if (!result) {
+					break;
+				}
+				// print(gameState);
+				
+				// turn the game state into a matrix
+				// convert to matrix
+				// we need a 2D array. 
+				cleanMatrix(matrix);
+				buildMatrix(matrix, gameState);
+				// print(matrix);
+					
+				// reduce matrix
+				reduce(matrix);
+				// print(matrix);
+				
+				// generate list of safe squares
+				// this is written for readability
+				int count = findSafeSquares(safeSquares, matrix);
+				Console.WriteLine(count);
+				if (count == 0)
+					break;
+				// print(safeSquares);
+				
+				// click buttons
+				clickSquares(safeSquares, count);
+				// Thread.Sleep(5000);
+			}
+			
 			print(matrix);
-			
-			// generate list of safe squares
-			// this is written for readability
-			int[,] safeSquares = new int[HEIGHT*WIDTH, 2];
-			int count = findSafeSquares(safeSquares, matrix);
-			Console.WriteLine(count);
-			print(safeSquares);
-			
-			// click buttons
-			clickSquares(safeSquares, count);
-			return;
-			
-			
-			
-			
-			
-			// repeat
-			
-			
-			
+			Console.WriteLine("done");
 		}
 		
 		// METHODS
@@ -180,12 +182,17 @@ namespace Minesweeper_Solver {
 			}
 		}
 
-		static void getGameState(Bitmap map, int[,] gameState) {
+		static bool getGameState(Bitmap map, int[,] gameState) {
 			for (int i=0; i<HEIGHT; i++) {
 				for (int j=0; j<WIDTH; j++) {
 					gameState[i, j] = getValueAt(map, i, j);
+					if (gameState[i, j] == -2) {
+						Console.WriteLine($"hit mine at {i}, {j}");
+						return false;
+					}
 				}
 			}
+			return true;
 		}
 
 		static int getValueAt(Bitmap map, int row, int col) {
@@ -207,7 +214,7 @@ namespace Minesweeper_Solver {
 		}
 		
 		static int makeGuess(double h, double s, double v) {
-			if (h == 0 && s == 0 && v < .95) 
+			if (h == 0 && s == 0 && v > .80 && v < .95) 
 				return 0;
 			if (h > 220 && h < 230)
 				return 1;
@@ -227,9 +234,20 @@ namespace Minesweeper_Solver {
 				return 8;
 			if (h == 0 && s == 0 && v == 1)
 				return -1;
-			return -2;
+			if (h == 0 && s == 0 && v < .80)
+				return -2;
+			return -3;
 		}
 		
+		static void cleanMatrix(sbyte[,] matrix) {
+			int len = WIDTH*HEIGHT+1;
+			for(int i=0; i<len-1; i++) {
+				for(int j=0; j<len-1; j++) {
+					matrix[i, j] = 0;
+				}
+			}
+		}
+
  		static void buildMatrix(sbyte[,] matrix, int[,] gameState) {
 			int len = WIDTH*HEIGHT;
 			
@@ -291,7 +309,7 @@ namespace Minesweeper_Solver {
 				zeroColumn(matrix, row, col);
 			}
 			
-			print(matrix);
+			// print(matrix);
 
 			// now go back upwards
 			for(row--; row>=0; row--) {
