@@ -6,6 +6,10 @@ using System.Text;
 using System.Drawing;
 using System.Drawing.Imaging;
 
+using WebDriverManager;
+using WebDriverManager.DriverConfigs.Impl;
+using OpenQA.Selenium.Chrome;
+
 namespace Minesweeper_Solver {
 	class Program {
 		static int FIRST_TOP = 90;
@@ -20,6 +24,15 @@ namespace Minesweeper_Solver {
 		static int DELAY = 1500;
 		
 		static void Main(string[] args) {
+			// setup chrome driver
+			new DriverManager().SetUpDriver(new ChromeConfig());
+			var driver = new ChromeDriver(@".\\tools\\chromedriver.exe");
+			return;
+			
+			
+			
+			
+			
 			// open minesweeper
 			Process p = new Process();
 			p.StartInfo = new ProcessStartInfo(pathToHTMLFile) {
@@ -34,7 +47,6 @@ namespace Minesweeper_Solver {
 			// verify window location
 			Console.WriteLine($"{location.Left} {location.Top} {location.Right} {location.Bottom}");
 			SetCursorPos(location.Left, location.Top);
-			return;
 			
 			
 			return;
