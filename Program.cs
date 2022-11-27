@@ -5,6 +5,7 @@ using System.Threading;
 using System.Text;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Drawing.Printing;
 using System.IO;
 
 using WebDriverManager;
@@ -40,11 +41,11 @@ namespace Minesweeper_Solver {
 			
 			// find the canvas
 			canvas = driver.FindElement(By.Id("defaultCanvas0"));
-			Console.WriteLine(canvas.GetAttribute("width"));
+			Console.WriteLine(canvas.Size.Width);
 			
 			// setup offsets
-			int canvasWidth = int.Parse(canvas.GetAttribute("width"));
-			int canvasHeight = int.Parse(canvas.GetAttribute("height"));
+			int canvasWidth = canvas.Size.Width;
+			int canvasHeight = canvas.Size.Height;
 			
 			int canvasCenterX = canvasWidth / 2;
 			int canvasCenterY = canvasHeight / 2;
@@ -52,39 +53,38 @@ namespace Minesweeper_Solver {
 			x0 = -canvasCenterX;
 			y0 = -canvasCenterY;
 			
+			int canvasX = canvas.Location.X;
+			int canvasY = canvas.Location.Y;
+			
 			// first click
-			initialClicks();
+			// initialClicks();
 			
+			// take screenshot
+				
+			string fileName = DateTime.Now.ToString("yyy-MM-dd HH-mm-ss") + ".png";
+			
+			Byte[] byteArray = ((ITakesScreenshot)driver).GetScreenshot().AsByteArray;
+			Bitmap screenshot = new System.Drawing.Bitmap(new System.IO.MemoryStream(byteArray));
+			Rectangle crop = new Rectangle(canvasX, canvasY, canvasWidth, canvasHeight);
+			screenshot = screenshot.Clone(crop, screenshot.PixelFormat);
+			// screenshot.Save(String.Format(@"path" + fileName, System.Drawing.Imaging.ImageFormat.Png));
+			Color c = screenshot.GetPixel(10, 10);
+			Console.WriteLine(c.ToString());
+			
+			// get all the colors
+			for(int i=0; i<=9; i++) {
+				c = screenshot.GetPixel(10, i*20+10);
+				double hue, saturation, value;
+				ColorToHSV(c, out hue, out saturation, out value);
+				Console.WriteLine($"{i} [h={hue} s={saturation} v={value}]");
+			}
 			return;
 			
 			
 			
 			
 			
-			// open minesweeper
-			Process p = new Process();
-			p.StartInfo = new ProcessStartInfo(pathToHTMLFile) {
-				UseShellExecute = true
-			};
-			p.Start();
-			p.WaitForInputIdle();
-			// get the window's location
-			Console.WriteLine(p.MainWindowHandle);
-			Rect location = getLocation(p.MainWindowHandle);
-			
-			// verify window location
-			Console.WriteLine($"{location.Left} {location.Top} {location.Right} {location.Bottom}");
-			SetCursorPos(location.Left, location.Top);
-			
-			
-			return;
-			// click a random square
-			Random rnd = new Random();
-			int row = rnd.Next(WIDTH);
-			int col = rnd.Next(HEIGHT);
-			// click(location, row, col);
-			
-			unsafe {
+/*			unsafe {
 				// set up variables
 				int w = location.Right - location.Left;
 				int h = location.Bottom - location.Top;
@@ -158,7 +158,7 @@ namespace Minesweeper_Solver {
 				ReleaseDC(hdcWindow, hdcScreen);
 				
 			}
-			
+*/			
 			
 			
 			// reduce matrix
@@ -219,7 +219,7 @@ namespace Minesweeper_Solver {
 				CAPTUREBLT = 0x40000000
 		}
 
-		[Serializable]
+/*		[Serializable]
 		[StructLayout(LayoutKind.Sequential)]
 		public struct Bitmap {
 				 /// <summary>
@@ -259,7 +259,7 @@ namespace Minesweeper_Solver {
 				 /// </summary>
 				 public IntPtr bmBits;
 		}
-
+*/
 		[StructLayoutAttribute( LayoutKind.Sequential )]
 		struct BITMAPINFO {
 			 /// <summary>
@@ -362,7 +362,7 @@ namespace Minesweeper_Solver {
 			canvas.Click();
 			
 			// these are for testing
-/*			
+			
 			// click the top left
 			Actions actions = new Actions(driver);
 			actions.MoveToElement(canvas, x0, y0).Click().Build().Perform();
@@ -374,7 +374,7 @@ namespace Minesweeper_Solver {
 			actions.MoveToElement(canvas, x0+(WIDTH-1)*SPACING, y0).Click()
 				.MoveToElement(canvas, x0, y0+(HEIGHT-1)*SPACING).Click()
 				.Build().Perform();
-*/
+
 		}
 		
 		static Rect getLocation(IntPtr mainWindowHandle) {

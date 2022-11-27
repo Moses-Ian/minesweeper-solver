@@ -27,11 +27,11 @@ function setup() {
 	}
 	
 	// for testing
-	// for(let i=0; i<=8; i++) {
-		// grid[i][0].neighborCount = i;
-		// grid[i][0].revealed = true;
-		// grid[i][0].mine = false;
-	// }
+	for(let i=0; i<=8; i++) {
+		grid[i][0].neighborCount = i;
+		grid[i][0].revealed = true;
+		grid[i][0].mine = false;
+	}
 	
 	
 }
