@@ -72,6 +72,8 @@ function getCell(x, y) {
 }
 
 function mousePressed() {
+	console.log(`mouse clicked at ${mouseX}, ${mouseY}`);
+	
 	if (firstClick) {
 		moveMines(mouseX, mouseY);
 		firstClick = false;
@@ -108,7 +110,7 @@ function moveMines(x, y) {
 				}
 				grid[newRow][newCol].mine = true;
 				grid[row+i][col+j].mine = false;
-				console.log(`mine moved from ${row},${col} to ${newRow},${newCol}`);
+				console.log(`mine moved from ${row+i},${col+j} to ${newRow},${newCol}`);
 			}
 		}
 	}

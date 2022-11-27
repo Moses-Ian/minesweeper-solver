@@ -5,28 +5,56 @@ using System.Threading;
 using System.Text;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 
 using WebDriverManager;
 using WebDriverManager.DriverConfigs.Impl;
+using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Interactions;
 
 namespace Minesweeper_Solver {
 	class Program {
 		static int FIRST_TOP = 90;
 		static int FIRST_LEFT = 45;
-		static int WIDTH = 9;
-		static int HEIGHT = 9;
-		static int SPACING = 18;
-		static sbyte MINES = 10;
+		static int WIDTH = 30;
+		static int HEIGHT = 16;
+		static int SPACING = 20;
+		static sbyte MINES = 99;
 		// static string processName = "MinesweeperClassic.exe";
 		// static string processLocation = "C:\\Program Files\\WindowsApps\\61424ShailendraSinghSoftw.44386E29E9F0D_1.0.0.0_x64__wr4tvb9qd6vv4\\MinesweeperClassic";
 		static string pathToHTMLFile = ".\\p5-minesweeper\\index.html";
 		static int DELAY = 1500;
+		static IWebElement canvas;
+		static ChromeDriver driver;
+		static int x0;
+		static int y0;
 		
 		static void Main(string[] args) {
 			// setup chrome driver
 			new DriverManager().SetUpDriver(new ChromeConfig());
-			var driver = new ChromeDriver(@".\\tools\\chromedriver.exe");
+			driver = new ChromeDriver(@".\\tools\\chromedriver.exe");
+			
+			// navigate to web page
+      driver.Navigate().GoToUrl(Path.GetFullPath(@".\\p5-minesweeper\\index.html"));
+			
+			// find the canvas
+			canvas = driver.FindElement(By.Id("defaultCanvas0"));
+			Console.WriteLine(canvas.GetAttribute("width"));
+			
+			// setup offsets
+			int canvasWidth = int.Parse(canvas.GetAttribute("width"));
+			int canvasHeight = int.Parse(canvas.GetAttribute("height"));
+			
+			int canvasCenterX = canvasWidth / 2;
+			int canvasCenterY = canvasHeight / 2;
+			
+			x0 = -canvasCenterX;
+			y0 = -canvasCenterY;
+			
+			// first click
+			initialClicks();
+			
 			return;
 			
 			
@@ -329,6 +357,26 @@ namespace Minesweeper_Solver {
 		}
 
 		// METHODS
+		static void initialClicks() {
+			// click the center
+			canvas.Click();
+			
+			// these are for testing
+/*			
+			// click the top left
+			Actions actions = new Actions(driver);
+			actions.MoveToElement(canvas, x0, y0).Click().Build().Perform();
+			
+			// click the bottom right
+			actions.MoveToElement(canvas, x0+(WIDTH-1)*SPACING, y0+(HEIGHT-1)*SPACING).Click().Build().Perform();
+			
+			// click the bottom left and top right in one goto
+			actions.MoveToElement(canvas, x0+(WIDTH-1)*SPACING, y0).Click()
+				.MoveToElement(canvas, x0, y0+(HEIGHT-1)*SPACING).Click()
+				.Build().Perform();
+*/
+		}
+		
 		static Rect getLocation(IntPtr mainWindowHandle) {
 			Rect location = new Rect();
 			GetWindowRect(mainWindowHandle, ref location);
