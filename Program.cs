@@ -18,10 +18,12 @@ namespace Minesweeper_Solver {
 	class Program {
 		static int FIRST_TOP = 90;
 		static int FIRST_LEFT = 45;
-		static int WIDTH = 30;
-		static int HEIGHT = 16;
+		// static int WIDTH = 30;
+		// static int HEIGHT = 16;
+		static int WIDTH = 9;
+		static int HEIGHT = 9;
 		static int SPACING = 20;
-		static sbyte MINES = 99;
+		static byte MINES = 10;
 		// static string processName = "MinesweeperClassic.exe";
 		// static string processLocation = "C:\\Program Files\\WindowsApps\\61424ShailendraSinghSoftw.44386E29E9F0D_1.0.0.0_x64__wr4tvb9qd6vv4\\MinesweeperClassic";
 		static int DELAY = 1500;
@@ -86,28 +88,18 @@ namespace Minesweeper_Solver {
 			getGameState(screenshot, gameState);
 			print(gameState);
 			
+			// turn the game state into a matrix
+			// convert to matrix
+			// we need a 2D array. 
+			// one row for each square, plus another for the number of mines
+			// one column for each square, plus another for the data in each square
+			byte[,] matrix = new byte[ WIDTH*HEIGHT+1, WIDTH*HEIGHT+1 ];
+			buildMatrix(matrix, gameState);
+			print(matrix);
+				
+				
 			
 			return;
-			
-			
-			
-			
-			
-/*			unsafe {
-				
-				// turn the game state into a matrix
-				// convert to matrix
-				// we need a 2D array. 
-				// one row for each square, plus another for the number of mines
-				// one column for each square, plus another for the data in each square
-				sbyte[,] matrix = new sbyte[ (WIDTH*HEIGHT+1), (WIDTH*HEIGHT+1) ];
-				buildMatrix(matrix, gameState);
-				print(matrix);
-				
-				
-			}
-*/			
-			
 			
 			// reduce matrix
 			
@@ -142,7 +134,7 @@ namespace Minesweeper_Solver {
 */
 		}
 		
-		static void print(sbyte[,] matrix) {
+		static void print(byte[,] matrix) {
 			int rows = WIDTH*HEIGHT+1;
 			int cols = WIDTH*HEIGHT+1;
 			for(int i=0; i<rows; i++) {
@@ -150,11 +142,11 @@ namespace Minesweeper_Solver {
 				sb.Append("[ ");
 				for(int j=0; j<cols-1; j++) {
 					sb.Append(matrix[i, j].ToString());
-					sb.Append(' ');
+					// sb.Append(' ');
 				}
-				sb.Append("| ");
+				sb.Append(" | ");
 				sb.Append(matrix[i, cols-1].ToString());
-				sb.Append(']');
+				sb.Append(" ]");
 				Console.WriteLine(sb.ToString());
 			}
 		}
@@ -228,7 +220,7 @@ namespace Minesweeper_Solver {
 			return -2;
 		}
 		
- 		static void buildMatrix(sbyte[,] matrix, int[,] gameState) {
+ 		static void buildMatrix(byte[,] matrix, int[,] gameState) {
 			int len = WIDTH*HEIGHT;
 			
 			// walk the matrix rows
@@ -241,8 +233,8 @@ namespace Minesweeper_Solver {
 				// if the square is unclicked, skip
 				if (gameState[gRow, gCol] == -1 || gameState[gRow, gCol] == 0)
 					continue;
-				// the value of the square
-				matrix[mRow, len] = (sbyte) gameState[gRow, gCol];
+				// the value of the square goes into the last column
+				matrix[mRow, len] = (byte) gameState[gRow, gCol];
 
 				// get game element's neighbors
 				for(int i=-1; i<=1; i++) {
