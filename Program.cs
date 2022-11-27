@@ -23,7 +23,7 @@ namespace Minesweeper_Solver {
 		static int WIDTH = 9;
 		static int HEIGHT = 9;
 		static int SPACING = 20;
-		static byte MINES = 10;
+		static sbyte MINES = 10;
 		// static string processName = "MinesweeperClassic.exe";
 		// static string processLocation = "C:\\Program Files\\WindowsApps\\61424ShailendraSinghSoftw.44386E29E9F0D_1.0.0.0_x64__wr4tvb9qd6vv4\\MinesweeperClassic";
 		static int DELAY = 1500;
@@ -66,7 +66,7 @@ namespace Minesweeper_Solver {
 				
 			string fileName = DateTime.Now.ToString("yyy-MM-dd HH-mm-ss") + ".png";
 			
-			Byte[] byteArray = ((ITakesScreenshot)driver).GetScreenshot().AsByteArray;
+			byte[] byteArray = ((ITakesScreenshot)driver).GetScreenshot().AsByteArray;
 			Bitmap screenshot = new System.Drawing.Bitmap(new System.IO.MemoryStream(byteArray));
 			Rectangle crop = new Rectangle(canvasX, canvasY, canvasWidth, canvasHeight);
 			screenshot = screenshot.Clone(crop, screenshot.PixelFormat);
@@ -93,15 +93,16 @@ namespace Minesweeper_Solver {
 			// we need a 2D array. 
 			// one row for each square, plus another for the number of mines
 			// one column for each square, plus another for the data in each square
-			byte[,] matrix = new byte[ WIDTH*HEIGHT+1, WIDTH*HEIGHT+1 ];
+			sbyte[,] matrix = new sbyte[ WIDTH*HEIGHT+1, WIDTH*HEIGHT+1 ];
 			buildMatrix(matrix, gameState);
 			print(matrix);
 				
-				
+			// reduce matrix
+			reduce(matrix);
+			print(matrix);
 			
 			return;
 			
-			// reduce matrix
 			
 			
 			// click buttons
@@ -134,7 +135,7 @@ namespace Minesweeper_Solver {
 */
 		}
 		
-		static void print(byte[,] matrix) {
+		static void print(sbyte[,] matrix) {
 			int rows = WIDTH*HEIGHT+1;
 			int cols = WIDTH*HEIGHT+1;
 			for(int i=0; i<rows; i++) {
@@ -149,6 +150,7 @@ namespace Minesweeper_Solver {
 				sb.Append(" ]");
 				Console.WriteLine(sb.ToString());
 			}
+			Console.WriteLine();
 		}
 
 		static void print(int[,] matrix) {
@@ -220,7 +222,7 @@ namespace Minesweeper_Solver {
 			return -2;
 		}
 		
- 		static void buildMatrix(byte[,] matrix, int[,] gameState) {
+ 		static void buildMatrix(sbyte[,] matrix, int[,] gameState) {
 			int len = WIDTH*HEIGHT;
 			
 			// walk the matrix rows
@@ -234,7 +236,7 @@ namespace Minesweeper_Solver {
 				if (gameState[gRow, gCol] == -1 || gameState[gRow, gCol] == 0)
 					continue;
 				// the value of the square goes into the last column
-				matrix[mRow, len] = (byte) gameState[gRow, gCol];
+				matrix[mRow, len] = (sbyte) gameState[gRow, gCol];
 
 				// get game element's neighbors
 				for(int i=-1; i<=1; i++) {
@@ -259,6 +261,80 @@ namespace Minesweeper_Solver {
 					matrix[len, mCol] = 1;
 			}
 			matrix[len, len] = MINES;
+		}
+		
+		static void reduce(sbyte[,] matrix) {
+			int len = WIDTH*HEIGHT+1;
+			// get first element to 1
+			int col = 0;
+			int row = 0;
+			for(row=0; row<len && col<len; row++, col++) {
+				if (matrix[row, col] == 0) {
+					findAndSwap(matrix, row, col);
+				}
+				// if it's still zero, move to next row
+				if (matrix[row, col] == 0) {
+					row--;
+					continue;
+				}
+				
+				// get first column to 0
+				zeroColumn(matrix, row, col);
+			}
+			// Console.WriteLine($"{row} {col}");
+			// get last column to 0
+			for(row--, col-=2; row>=0 && col>=0; row--, col--) {
+				if (matrix[row, col] != 1) {
+					row++;
+					continue;
+				}
+				
+				zeroColumnUpward(matrix, row, col);
+				
+				
+			}
+		}
+		
+		static void findAndSwap(sbyte[,] matrix, int row, int col) {
+			int len = WIDTH*HEIGHT+1;
+			for(int i=row+1; i<len; i++) {
+				if (matrix[i, col] != 0) {
+					swap(matrix, row, i);
+					return;
+				}
+			}
+		}
+		
+		static void swap(sbyte[,] matrix, int a, int b) {
+			int len = WIDTH*HEIGHT+1;
+			sbyte temp;
+			for(int j=0; j<len; j++) {
+				temp = matrix[a, j];
+				matrix[a, j] = matrix[b, j];
+				matrix[b, j] = temp;
+			}
+		}
+		
+		static void zeroColumn(sbyte[,] matrix, int row, int col) {
+			int len = WIDTH*HEIGHT+1;
+			// for each row below the current row, get this column to zero
+			for(int i=row+1; i<len; i++) {
+				sbyte multiplier = matrix[i, col];
+				for(int j=col; j<len; j++) {
+					matrix[i, j] -= (sbyte) (matrix[row, j] * multiplier);
+				}
+			}
+		}
+		
+		static void zeroColumnUpward(sbyte[,] matrix, int row, int col) {
+			int len = WIDTH*HEIGHT+1;
+			// for each row below the current row, get this column to zero
+			for(int i=row-1; i>=0; i--) {
+				sbyte multiplier = matrix[i, col];
+				for(int j=col; j<len; j++) {
+					matrix[i, j] -= (sbyte) (matrix[row, j] * multiplier);
+				}
+			}
 		}
 		
 	}	
