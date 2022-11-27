@@ -101,11 +101,19 @@ namespace Minesweeper_Solver {
 			reduce(matrix);
 			print(matrix);
 			
+			// generate list of safe squares
+			// this is written for readability
+			int[,] safeSquares = new int[HEIGHT*WIDTH, 2];
+			int count = findSafeSquares(safeSquares, matrix);
+			Console.WriteLine(count);
+			print(safeSquares);
+			
+			// click buttons
+			clickSquares(safeSquares, count);
 			return;
 			
 			
 			
-			// click buttons
 			
 			
 			// repeat
@@ -269,28 +277,32 @@ namespace Minesweeper_Solver {
 			int col = 0;
 			int row = 0;
 			for(row=0; row<len && col<len; row++, col++) {
+				// if it's zero, find a row with a 1 in this column and swap it
 				if (matrix[row, col] == 0) {
 					findAndSwap(matrix, row, col);
 				}
-				// if it's still zero, move to next row
+				// if it's still zero, move to next column, but stay on this row
 				if (matrix[row, col] == 0) {
 					row--;
 					continue;
 				}
 				
-				// get first column to 0
+				// for each row below this, get this column to zero
 				zeroColumn(matrix, row, col);
 			}
-			// Console.WriteLine($"{row} {col}");
-			// get last column to 0
-			for(row--, col-=2; row>=0 && col>=0; row--, col--) {
-				if (matrix[row, col] != 1) {
-					row++;
-					continue;
+			
+			print(matrix);
+
+			// now go back upwards
+			for(row--; row>=0; row--) {
+				// find the leftmost 1
+				for(col=0; col<len-1; col++) {
+					if (matrix[row, col] == 1) {
+						// for each row above this one, get this column to zero
+						zeroColumnUpward(matrix, row, col);
+						break;
+					}
 				}
-				
-				zeroColumnUpward(matrix, row, col);
-				
 				
 			}
 		}
@@ -320,6 +332,7 @@ namespace Minesweeper_Solver {
 			// for each row below the current row, get this column to zero
 			for(int i=row+1; i<len; i++) {
 				sbyte multiplier = matrix[i, col];
+				// you have to apply the multiplier and subtraction to every element in the row
 				for(int j=col; j<len; j++) {
 					matrix[i, j] -= (sbyte) (matrix[row, j] * multiplier);
 				}
@@ -331,10 +344,70 @@ namespace Minesweeper_Solver {
 			// for each row below the current row, get this column to zero
 			for(int i=row-1; i>=0; i--) {
 				sbyte multiplier = matrix[i, col];
+				// you have to apply the multiplier and subtraction to every element in the row
 				for(int j=col; j<len; j++) {
 					matrix[i, j] -= (sbyte) (matrix[row, j] * multiplier);
 				}
 			}
+		}
+		
+		static int findSafeSquares(int[,] safeSquares, sbyte[,] matrix) {
+			// right now, we only follow one rule:
+			// 1 + 1 = 0 means A and B are safe
+			// other rules we could add:
+			// 1 + -1 = 1 means A is a mine and B is safe
+			// 1 + -1 = -1 means A is safe and B is a mine
+			
+			int len = WIDTH*HEIGHT+1;
+			int count = 0;
+			// for each row, see if the last element is zero
+			for(int row=0; row<len; row++) {
+				if (matrix[row, len-1] == 0) {
+					// if every element in the row is positive, then every element in the row is safe
+					bool allPositive = true;
+					bool allZero = true;
+					for(int col=0; col<len-1; col++) {
+						if (matrix[row, col] == -1) {
+							allPositive = false;
+							allZero = false;
+							break;
+						}
+						if (matrix[row, col] >= 1) {
+							allZero = false;
+						}
+					}
+					
+					// leave the loop early if every element in the row is zero
+					if (allZero)
+						break;
+					
+					// move on to the next column if there were any negatives
+					if (!allPositive)
+						continue;
+					
+					// every element in the row is safe
+					for(int col=0; col<len-1; col++) {
+						if (matrix[row, col] == 1) {
+							int gRow = col / WIDTH;
+							int gCol = col % WIDTH;
+							safeSquares[count, 0] = gRow;
+							safeSquares[count, 1] = gCol;
+							count++;
+						}
+					}
+				}
+			}
+			return count;
+		}
+		
+		static void clickSquares(int[,] safeSquares, int count) {
+			Actions actions = new Actions(driver);
+			for(int i=0; i<count; i++) {
+				int pixelX = safeSquares[i, 1]*SPACING + x0;
+				int pixelY = safeSquares[i, 0]*SPACING + y0;
+				actions.MoveToElement(canvas, pixelX, pixelY).Click();
+			}
+			actions.Build().Perform();
 		}
 		
 	}	
