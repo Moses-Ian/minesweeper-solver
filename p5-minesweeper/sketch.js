@@ -27,11 +27,11 @@ function setup() {
 	}
 	
 	// for testing
-	for(let i=0; i<=8; i++) {
-		grid[i][0].neighborCount = i;
-		grid[i][0].revealed = true;
-		grid[i][0].mine = false;
-	}
+	// for(let i=0; i<=8; i++) {
+		// grid[i][0].neighborCount = i;
+		// grid[i][0].revealed = true;
+		// grid[i][0].mine = false;
+	// }
 	
 	
 }
@@ -72,7 +72,7 @@ function getCell(x, y) {
 }
 
 function mousePressed() {
-	console.log(`mouse clicked at ${mouseX}, ${mouseY}`);
+	// console.log(`mouse clicked at ${mouseX}, ${mouseY}`);
 	
 	if (firstClick) {
 		moveMines(mouseX, mouseY);
@@ -110,7 +110,7 @@ function moveMines(x, y) {
 				}
 				grid[newRow][newCol].mine = true;
 				grid[row+i][col+j].mine = false;
-				console.log(`mine moved from ${row+i},${col+j} to ${newRow},${newCol}`);
+				// console.log(`mine moved from ${row+i},${col+j} to ${newRow},${newCol}`);
 			}
 		}
 	}
