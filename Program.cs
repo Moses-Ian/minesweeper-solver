@@ -110,10 +110,9 @@ namespace Minesweeper_Solver {
 				// generate list of safe squares
 				// this is written for readability
 				int count = findSafeSquares(safeSquares, matrix);
-				Console.WriteLine(count);
 				if (count == 0)
 					break;
-				// print(safeSquares);
+				printSafeSquares(safeSquares, count);
 				
 				// click buttons
 				clickSquares(safeSquares, count);
@@ -150,15 +149,21 @@ namespace Minesweeper_Solver {
 			int cols = WIDTH*HEIGHT+1;
 			for(int i=0; i<rows; i++) {
 				StringBuilder sb = new StringBuilder();
-				sb.Append("[ ");
+				sb.Append("[");
+				bool allZero = true;
 				for(int j=0; j<cols-1; j++) {
+					if (j % WIDTH == 0)
+						sb.Append(' ');
 					sb.Append(matrix[i, j].ToString());
-					// sb.Append(' ');
+					if (matrix[i, j] != 0)
+						allZero = false;
 				}
 				sb.Append(" | ");
 				sb.Append(matrix[i, cols-1].ToString());
 				sb.Append(" ]");
 				Console.WriteLine(sb.ToString());
+				if (allZero) 
+					break;
 			}
 			Console.WriteLine();
 		}
@@ -180,6 +185,47 @@ namespace Minesweeper_Solver {
 				sb.Append(" ]");
 				Console.WriteLine(sb.ToString());
 			}
+		}
+
+		static void printSafeSquares(int[,] matrix, int count) {
+			Console.WriteLine($"Safe Squares: {count}");
+			int rows = matrix.GetLength(0);
+			int cols = matrix.GetLength(1);
+			for(int i=0; i<count; i++) {
+				StringBuilder sb = new StringBuilder();
+				sb.Append("[ ");
+				for(int j=0; j<cols; j++) {
+					if (matrix[i, j] == -1) 
+						sb.Append('X');
+					else
+						sb.Append(matrix[i, j].ToString());
+					sb.Append(' ');
+				}
+				sb.Append("]");
+				Console.WriteLine(sb.ToString());
+			}
+		}
+
+		static void print(int[] array) {
+			StringBuilder sb = new StringBuilder();
+			sb.Append("[ ");
+			for(int i=0; i<array.Length; i++) {
+				sb.Append(array[i].ToString());
+				sb.Append(' ');
+			}
+			sb.Append("]");
+			Console.WriteLine(sb.ToString());
+		}
+
+		static void print(sbyte[] array) {
+			StringBuilder sb = new StringBuilder();
+			sb.Append("[ ");
+			for(int i=0; i<array.Length; i++) {
+				sb.Append(array[i].ToString());
+				sb.Append(' ');
+			}
+			sb.Append("]");
+			Console.WriteLine(sb.ToString());
 		}
 
 		static bool getGameState(Bitmap map, int[,] gameState) {
@@ -370,52 +416,105 @@ namespace Minesweeper_Solver {
 		}
 		
 		static int findSafeSquares(int[,] safeSquares, sbyte[,] matrix) {
-			// right now, we only follow one rule:
-			// 1 + 1 = 0 means A and B are safe
-			// other rules we could add:
-			// 1 + -1 = 1 means A is a mine and B is safe
-			// 1 + -1 = -1 means A is safe and B is a mine
+			// uses a brute-force method to solve each equation
+			// if there's only one solution, we can use it
+			// if there's more, we skip and move on
 			
 			int len = WIDTH*HEIGHT+1;
 			int count = 0;
-			// for each row, see if the last element is zero
+			int safe = 0;
+			// for each row, brute force to see if there's a solution
 			for(int row=0; row<len; row++) {
-				if (matrix[row, len-1] == 0) {
-					// if every element in the row is positive, then every element in the row is safe
-					bool allPositive = true;
-					bool allZero = true;
-					for(int col=0; col<len-1; col++) {
-						if (matrix[row, col] == -1) {
-							allPositive = false;
-							allZero = false;
-							break;
-						}
-						if (matrix[row, col] >= 1) {
-							allZero = false;
-						}
-					}
-					
-					// leave the loop early if every element in the row is zero
-					if (allZero)
-						break;
-					
-					// move on to the next column if there were any negatives
-					if (!allPositive)
-						continue;
-					
-					// every element in the row is safe
-					for(int col=0; col<len-1; col++) {
-						if (matrix[row, col] == 1) {
-							int gRow = col / WIDTH;
-							int gCol = col % WIDTH;
-							safeSquares[count, 0] = gRow;
-							safeSquares[count, 1] = gCol;
-							count++;
-						}
+				// set up an array of variables, to point to the elements
+				count = 0;
+				for(int col=0; col<len-1; col++) {
+					if (matrix[row, col] != 0) {
+						count++;
 					}
 				}
+				int[] pointers = new int[count];
+				
+				// put the pointers in the array
+				count = 0;
+				for(int col=0; col<len-1; col++) {
+					if (matrix[row, col] != 0) {
+						pointers[count] = col;
+						count++;
+					}
+				}
+				
+				// if the row is all zeros, get out of here
+				if (count == 0)
+					break;
+				
+				// create a solution array
+				sbyte[] solution = new sbyte[count+1];	// the +1 acts as a done flag
+				sbyte[] prevSolution = new sbyte[count];
+				
+				int solutionCount = 0;
+				while(solution[count] == 0) {
+					
+					// add up the solution
+					int total = 0;
+					for(int i=0; i<pointers.Length; i++) {
+						int col = pointers[i];
+						total += solution[i] * matrix[row, col];
+					}
+					
+					// check the solution
+					if (total == matrix[row, len-1]) {
+						solutionCount++;
+						// if there's two or more solutions, we can't validate any squares
+						if (solutionCount >= 2)
+							break;
+						
+						// save the solution for later
+						copyArray(solution, prevSolution);
+					}
+					
+					// iterate through the solutions
+					for(int i=0; i<solution.Length; i++) {
+						solution[i]++;
+						if (solution[i] > 1) {
+							solution[i] = 0;
+						} else {
+							break;
+						}
+					}
+					// print(solution);
+				}
+				if (solutionCount == 1) {
+					Console.WriteLine($"row {row}");
+					print(pointers);
+					print(prevSolution);
+				}
+				
+				// if there's too many solutions, we can't validate any squares
+				if (solutionCount >= 2)
+					continue;
+				
+				// add safe squares to the safeSquares array
+				for (int i=0; i<prevSolution.Length; i++) {
+					if (prevSolution[i] == 0) {
+						int pointer = pointers[i];
+						int x = pointer / WIDTH;
+						int y = pointer % WIDTH;
+						safeSquares[safe, 0] = x;
+						safeSquares[safe, 1] = y;
+						safe++;
+					}
+				}
+
 			}
-			return count;
+			return safe;
+		}
+		
+		static void copyArray(sbyte[] a, sbyte[] b) {
+			// from a to b
+			// b is shorter than a
+			for(int i=0; i<b.Length; i++) {
+				b[i] = a[i];
+			}
 		}
 		
 		static void clickSquares(int[,] safeSquares, int count) {

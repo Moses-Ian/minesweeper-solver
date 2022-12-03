@@ -7,6 +7,7 @@ let COLS = 9;
 let MINES = 10;
 let W = 20;
 let firstClick = true;
+let squaresLeftP;
 
 function setup() {
   // put setup code here
@@ -29,6 +30,10 @@ function setup() {
 		}
 	}
 	
+	// create the squaresLeft block
+	createP(`Mines: ${MINES}`);
+	squaresLeftP = createP();
+	
 	// for testing
 	// for(let i=0; i<=8; i++) {
 		// grid[i][0].neighborCount = i;
@@ -49,6 +54,15 @@ function draw() {
 		for(let j=0; j<COLS; j++) {
 			grid[i][j].show();
 		}
+	}
+	
+	let squaresLeft = countSquares();
+	
+	squaresLeftP.html(`Squares left: ${squaresLeft}`);
+	
+	if (squaresLeft == MINES) {
+		createP("Finished! :)");
+		noLoop();
 	}
 }
 
@@ -136,4 +150,15 @@ function gameOver() {
 		}
 	}
 	noLoop();
+}
+
+function countSquares() {
+	count = 0;
+	for(let i=0; i<ROWS; i++) {
+		for(let j=0; j<COLS; j++) {
+			if (!grid[i][j].revealed)
+				count++;
+		}
+	}
+	return count;
 }
