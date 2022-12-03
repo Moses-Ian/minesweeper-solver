@@ -23,7 +23,7 @@ namespace Minesweeper_Solver {
 		// static sbyte MINES = 99;
 		static int WIDTH = 9;
 		static int HEIGHT = 9;
-		static sbyte MINES = 10;
+		static sbyte MINES = 15;
 		static int SPACING = 20;
 		// static string processName = "MinesweeperClassic.exe";
 		// static string processLocation = "C:\\Program Files\\WindowsApps\\61424ShailendraSinghSoftw.44386E29E9F0D_1.0.0.0_x64__wr4tvb9qd6vv4\\MinesweeperClassic";
@@ -76,6 +76,7 @@ namespace Minesweeper_Solver {
 			// take screenshot
 			while(true) {
 			// for(int runs=1; runs<=2; runs++) {
+				Console.WriteLine("taking screenshot...");
 				byteArray = ((ITakesScreenshot)driver).GetScreenshot().AsByteArray;
 				screenshot = new System.Drawing.Bitmap(new System.IO.MemoryStream(byteArray));
 				screenshot = screenshot.Clone(crop, screenshot.PixelFormat);
@@ -90,6 +91,7 @@ namespace Minesweeper_Solver {
 				// }
 				
 				// use the data
+				Console.WriteLine("getting game state...");
 				bool result = getGameState(screenshot, gameState);
 				if (!result) {
 					break;
@@ -99,27 +101,34 @@ namespace Minesweeper_Solver {
 				// turn the game state into a matrix
 				// convert to matrix
 				// we need a 2D array. 
+				Console.WriteLine("building matrix...");
 				cleanMatrix(matrix);
 				buildMatrix(matrix, gameState);
-				// print(matrix);
+				Console.WriteLine("built:");
+				print(matrix);
 					
 				// reduce matrix
+				Console.WriteLine("reducing matrix...");
 				reduce(matrix);
-				// print(matrix);
+				// rref(matrix);
+				print(matrix);
 				
 				// generate list of safe squares
 				// this is written for readability
+				Console.WriteLine("finding safe squares...");
 				int count = findSafeSquares(safeSquares, matrix);
 				if (count == 0)
 					break;
 				printSafeSquares(safeSquares, count);
 				
 				// click buttons
+				Console.WriteLine("clicking squares...");
 				clickSquares(safeSquares, count);
 				// Thread.Sleep(5000);
 			}
 			
 			print(matrix);
+			print(gameState);
 			Console.WriteLine("done");
 		}
 		
@@ -160,10 +169,10 @@ namespace Minesweeper_Solver {
 				}
 				sb.Append(" | ");
 				sb.Append(matrix[i, cols-1].ToString());
-				sb.Append(" ]");
-				Console.WriteLine(sb.ToString());
+				sb.Append($" ] - {i}");
 				if (allZero) 
-					break;
+					continue;
+				Console.WriteLine(sb.ToString());
 			}
 			Console.WriteLine();
 		}
@@ -351,6 +360,17 @@ namespace Minesweeper_Solver {
 					continue;
 				}
 				
+				// divide each element of this row by the value of the target column
+				sbyte val = matrix[row, col];
+				for (int j=0; j<len-1; j++) {
+					if (matrix[row, j] == 1 && val == 2) {
+						Console.ForegroundColor = ConsoleColor.Red;
+						Console.WriteLine("BAD MATH");
+						Console.ForegroundColor = ConsoleColor.White;
+					}
+					matrix[row, j] /= val;
+				}
+				
 				// for each row below this, get this column to zero
 				zeroColumn(matrix, row, col);
 			}
@@ -360,7 +380,7 @@ namespace Minesweeper_Solver {
 			// now go back upwards
 			for(row--; row>=0; row--) {
 				// find the leftmost 1
-				for(col=0; col<len-1; col++) {
+				for(col=0; col<len-2; col++) {
 					if (matrix[row, col] == 1) {
 						// for each row above this one, get this column to zero
 						zeroColumnUpward(matrix, row, col);
@@ -371,6 +391,51 @@ namespace Minesweeper_Solver {
 			}
 		}
 		
+		private static sbyte[,] rref(sbyte[,] matrix)
+		{            
+			int lead = 0, rowCount = matrix.GetLength(0), columnCount = matrix.GetLength(1);
+			for (int r = 0; r < rowCount; r++) {
+				if (columnCount <= lead) break;
+				int i = r;
+				while (matrix[i, lead] == 0) {
+					i++;
+					if (i == rowCount) {
+						i = r;
+						lead++;
+						if (columnCount == lead) {
+							lead--;
+							break;
+						}
+					}
+				}
+				for (int j = 0; j < columnCount; j++) {
+					sbyte temp = matrix[r, j];
+					matrix[r, j] = matrix[i, j];
+					matrix[i, j] = temp;
+				}
+				sbyte div = matrix[r, lead];
+				if(div != 0)
+					for (int j = 0; j < columnCount; j++) {
+						if (matrix[r, j] == 1 && div == 2) {
+							Console.ForegroundColor = ConsoleColor.Red;
+							Console.WriteLine("BAD MATH");
+							Console.ForegroundColor = ConsoleColor.White;
+						}
+						matrix[r, j] /= div;                
+					}
+				for (int j = 0; j < rowCount; j++) {
+					if (j != r) {
+						sbyte sub = matrix[j, lead];
+						for (int k = 0; k < columnCount; k++) 
+							matrix[j, k] -= (sbyte)(sub * matrix[r, k]);
+					}
+				}
+				lead++;
+			}
+			return matrix;
+		}
+
+
 		static void findAndSwap(sbyte[,] matrix, int row, int col) {
 			int len = WIDTH*HEIGHT+1;
 			for(int i=row+1; i<len; i++) {
@@ -425,6 +490,7 @@ namespace Minesweeper_Solver {
 			int safe = 0;
 			// for each row, brute force to see if there's a solution
 			for(int row=0; row<len; row++) {
+				Console.WriteLine($"--> solving row {row}");
 				// set up an array of variables, to point to the elements
 				count = 0;
 				for(int col=0; col<len-1; col++) {
@@ -432,9 +498,18 @@ namespace Minesweeper_Solver {
 						count++;
 					}
 				}
-				int[] pointers = new int[count];
+
+				// if the row is all zeros, get out of here
+				if (count == 0)
+					break;
+				
+				// if the row is too crazy, move on to the next row
+				if (count > 10)
+					continue;
+				
 				
 				// put the pointers in the array
+				int[] pointers = new int[count];
 				count = 0;
 				for(int col=0; col<len-1; col++) {
 					if (matrix[row, col] != 0) {
@@ -442,10 +517,6 @@ namespace Minesweeper_Solver {
 						count++;
 					}
 				}
-				
-				// if the row is all zeros, get out of here
-				if (count == 0)
-					break;
 				
 				// create a solution array
 				sbyte[] solution = new sbyte[count+1];	// the +1 acts as a done flag
@@ -490,8 +561,13 @@ namespace Minesweeper_Solver {
 				}
 				
 				// if there's too many solutions, we can't validate any squares
-				if (solutionCount >= 2)
+				if (solutionCount != 1)
 					continue;
+				
+				if (solutionCount == 0) {
+					Console.ForegroundColor = ConsoleColor.Blue;
+					Console.WriteLine("zero solutions");
+				}
 				
 				// add safe squares to the safeSquares array
 				for (int i=0; i<prevSolution.Length; i++) {
@@ -502,8 +578,11 @@ namespace Minesweeper_Solver {
 						safeSquares[safe, 0] = x;
 						safeSquares[safe, 1] = y;
 						safe++;
+						Console.ForegroundColor = ConsoleColor.Red;
+						Console.WriteLine($"adding {x} {y}");
 					}
 				}
+				Console.ForegroundColor = ConsoleColor.White;
 
 			}
 			return safe;

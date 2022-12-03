@@ -59,7 +59,10 @@ class Cell {
 		rect(this.x, this.y, this.w, this.w);
 		if (this.revealed) {
 			if (this.mine) {
-				colorMode(HSB);
+				if (this.clicked) {
+					fill(0, 100, 100);
+					rect(this.x, this.y, this.w, this.w);
+				}
 				fill(0, 0, 50);
 				ellipse(this.x+this.w*.5, this.y+this.w*.5, this.w*.5);
 			} else {

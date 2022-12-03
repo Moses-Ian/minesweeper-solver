@@ -4,7 +4,7 @@ let grid;
 // let MINES = 99;
 let ROWS = 9;
 let COLS = 9;
-let MINES = 10;
+let MINES = 15;
 let W = 20;
 let firstClick = true;
 let squaresLeftP;
@@ -43,6 +43,17 @@ function setup() {
 	// grid[9][0].revealed = true;
 	// grid[9][0].mine = true;
 	
+	// for setting up custom grids
+	// ROWS = 5;
+	// COLS = 5;
+	// MINES = 5;
+	// grid = customGrid();
+	// for(let i=0; i<ROWS; i++) {
+		// for(let j=0; j<COLS; j++) {
+			// grid[i][j].countNeighbors();
+		// }
+	// }
+	// firstClick = false;
 	
 }
 
@@ -101,6 +112,9 @@ function mousePressed() {
 	getCell(mouseX, mouseY).reveal();
 	
 	if (getCell(mouseX, mouseY).mine) {
+		cell = getCell(mouseX, mouseY);
+		console.log(`clicked on ${cell.i} ${cell.j}`);
+		cell.clicked = true;
 		gameOver();
 	}
 }
