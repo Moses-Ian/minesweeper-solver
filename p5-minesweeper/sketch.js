@@ -1,10 +1,10 @@
 let grid;
-// let ROWS = 16;
-// let COLS = 30;
-// let MINES = 99;
-let ROWS = 9;
-let COLS = 9;
-let MINES = 15;
+let ROWS = 16;
+let COLS = 30;
+let MINES = 99;
+// let ROWS = 9;
+// let COLS = 9;
+// let MINES = 15;
 let W = 20;
 let firstClick = true;
 let squaresLeftP;

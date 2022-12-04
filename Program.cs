@@ -18,12 +18,12 @@ namespace Minesweeper_Solver {
 	class Program {
 		static int FIRST_TOP = 90;
 		static int FIRST_LEFT = 45;
-		// static int WIDTH = 30;
-		// static int HEIGHT = 16;
-		// static sbyte MINES = 99;
-		static int WIDTH = 9;
-		static int HEIGHT = 9;
-		static sbyte MINES = 15;
+		static int WIDTH = 30;
+		static int HEIGHT = 16;
+		static sbyte MINES = 99;
+		// static int WIDTH = 9;
+		// static int HEIGHT = 9;
+		// static sbyte MINES = 15;
 		static int SPACING = 20;
 		// static string processName = "MinesweeperClassic.exe";
 		// static string processLocation = "C:\\Program Files\\WindowsApps\\61424ShailendraSinghSoftw.44386E29E9F0D_1.0.0.0_x64__wr4tvb9qd6vv4\\MinesweeperClassic";
@@ -111,6 +111,11 @@ namespace Minesweeper_Solver {
 				Console.WriteLine("reducing matrix...");
 				reduce(matrix);
 				// rref(matrix);
+				print(matrix);
+				
+				// chop matrix
+				Console.WriteLine("chopping matrix...");
+				int goodRows = chop(matrix);
 				print(matrix);
 				
 				// generate list of safe squares
@@ -362,7 +367,7 @@ namespace Minesweeper_Solver {
 				
 				// divide each element of this row by the value of the target column
 				sbyte val = matrix[row, col];
-				for (int j=0; j<len-1; j++) {
+				for (int j=0; j<len; j++) {
 					if (matrix[row, j] == 1 && val == 2) {
 						Console.ForegroundColor = ConsoleColor.Red;
 						Console.WriteLine("BAD MATH");
@@ -375,7 +380,8 @@ namespace Minesweeper_Solver {
 				zeroColumn(matrix, row, col);
 			}
 			
-			// print(matrix);
+			Console.WriteLine("echelon form:");
+			print(matrix);
 
 			// now go back upwards
 			for(row--; row>=0; row--) {
@@ -391,8 +397,7 @@ namespace Minesweeper_Solver {
 			}
 		}
 		
-		private static sbyte[,] rref(sbyte[,] matrix)
-		{            
+		private static sbyte[,] rref(sbyte[,] matrix) {            
 			int lead = 0, rowCount = matrix.GetLength(0), columnCount = matrix.GetLength(1);
 			for (int r = 0; r < rowCount; r++) {
 				if (columnCount <= lead) break;
@@ -435,7 +440,6 @@ namespace Minesweeper_Solver {
 			return matrix;
 		}
 
-
 		static void findAndSwap(sbyte[,] matrix, int row, int col) {
 			int len = WIDTH*HEIGHT+1;
 			for(int i=row+1; i<len; i++) {
@@ -447,7 +451,7 @@ namespace Minesweeper_Solver {
 		}
 		
 		static void swap(sbyte[,] matrix, int a, int b) {
-			int len = WIDTH*HEIGHT+1;
+			int len = matrix.GetLength(1);
 			sbyte temp;
 			for(int j=0; j<len; j++) {
 				temp = matrix[a, j];
@@ -462,7 +466,7 @@ namespace Minesweeper_Solver {
 			for(int i=row+1; i<len; i++) {
 				sbyte multiplier = matrix[i, col];
 				// you have to apply the multiplier and subtraction to every element in the row
-				for(int j=col; j<len; j++) {
+				for(int j=0; j<len; j++) {
 					matrix[i, j] -= (sbyte) (matrix[row, j] * multiplier);
 				}
 			}
@@ -474,7 +478,7 @@ namespace Minesweeper_Solver {
 			for(int i=row-1; i>=0; i--) {
 				sbyte multiplier = matrix[i, col];
 				// you have to apply the multiplier and subtraction to every element in the row
-				for(int j=col; j<len; j++) {
+				for(int j=0; j<len; j++) {
 					matrix[i, j] -= (sbyte) (matrix[row, j] * multiplier);
 				}
 			}
@@ -604,6 +608,46 @@ namespace Minesweeper_Solver {
 				actions.MoveToElement(canvas, pixelX, pixelY).Click();
 			}
 			actions.Build().Perform();
+		}
+		
+		static int chop(sbyte[,] matrix) {
+			int rows = matrix.GetLength(0);
+			int cols = matrix.GetLength(1);
+			int targetRow = 0;
+			// for each row...
+			for(int i=0; i<rows; i++) {
+				// if the elements are all 1, and the number of 1s equals the total
+				bool allOnes = true;
+				int count = 0;
+				for(int j=0; j<cols-1; j++) {
+					if (matrix[i, j] != 0 && matrix[i, j] != 1) {
+						allOnes = false;
+						break;
+					}
+					count += matrix[i, j];
+				}
+
+				if (allOnes && count == matrix[i, cols-1]) {
+					// it's a simple row -> chop it
+					continue;
+				}
+				
+				// put the current row in the target row
+				for (int j=0; j<cols; j++) {
+					matrix[targetRow, j] = matrix[i, j];
+				}
+				
+				// increment the target row -> only do this if the row wasn't chopped
+				targetRow++;
+			}
+			
+			// finally, zero out everything after the target row
+			for (int i=targetRow; i<rows; i++)
+				for (int j=0; j<cols; j++)
+					matrix[i, j] = 0;
+				
+			// return the number of rows of valid data
+			return targetRow;
 		}
 		
 	}	
