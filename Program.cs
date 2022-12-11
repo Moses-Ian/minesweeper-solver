@@ -132,7 +132,7 @@ namespace Minesweeper_Solver {
 				// Thread.Sleep(5000);
 			}
 			
-			print(matrix);
+			printCommas(matrix);
 			print(gameState);
 			Console.WriteLine("done");
 		}
@@ -163,18 +163,38 @@ namespace Minesweeper_Solver {
 			int cols = WIDTH*HEIGHT+1;
 			for(int i=0; i<rows; i++) {
 				StringBuilder sb = new StringBuilder();
-				sb.Append("[");
+				sb.Append("{ ");
 				bool allZero = true;
-				for(int j=0; j<cols-1; j++) {
-					if (j % WIDTH == 0)
-						sb.Append(' ');
+				for(int j=0; j<cols-2; j++) {
 					sb.Append(matrix[i, j].ToString());
 					if (matrix[i, j] != 0)
 						allZero = false;
+					// sb.Append(", ");
 				}
 				sb.Append(" | ");
 				sb.Append(matrix[i, cols-1].ToString());
-				sb.Append($" ] - {i}");
+				sb.Append(" }");
+				if (allZero) 
+					continue;
+				Console.WriteLine(sb.ToString());
+			}
+			Console.WriteLine();
+		}
+
+		static void printCommas(sbyte[,] matrix) {
+			int rows = WIDTH*HEIGHT+1;
+			int cols = WIDTH*HEIGHT+1;
+			for(int i=0; i<rows; i++) {
+				StringBuilder sb = new StringBuilder();
+				sb.Append("{ ");
+				bool allZero = true;
+				for(int j=0; j<cols; j++) {
+					sb.Append(matrix[i, j].ToString());
+					if (matrix[i, j] != 0)
+						allZero = false;
+					sb.Append(", ");
+				}
+				sb.Append(" },");
 				if (allZero) 
 					continue;
 				Console.WriteLine(sb.ToString());
@@ -489,15 +509,16 @@ namespace Minesweeper_Solver {
 			// if there's only one solution, we can use it
 			// if there's more, we skip and move on
 			
-			int len = WIDTH*HEIGHT+1;
+			int rows = matrix.GetLength(0);
+			int cols = matrix.GetLength(1);
 			int count = 0;
 			int safe = 0;
 			// for each row, brute force to see if there's a solution
-			for(int row=0; row<len; row++) {
+			for(int row=0; row<rows; row++) {
 				Console.WriteLine($"--> solving row {row}");
 				// set up an array of variables, to point to the elements
 				count = 0;
-				for(int col=0; col<len-1; col++) {
+				for(int col=0; col<cols-1; col++) {
 					if (matrix[row, col] != 0) {
 						count++;
 					}
@@ -515,7 +536,7 @@ namespace Minesweeper_Solver {
 				// put the pointers in the array
 				int[] pointers = new int[count];
 				count = 0;
-				for(int col=0; col<len-1; col++) {
+				for(int col=0; col<cols-1; col++) {
 					if (matrix[row, col] != 0) {
 						pointers[count] = col;
 						count++;
@@ -537,7 +558,7 @@ namespace Minesweeper_Solver {
 					}
 					
 					// check the solution
-					if (total == matrix[row, len-1]) {
+					if (total == matrix[row, cols-1]) {
 						solutionCount++;
 						// if there's two or more solutions, we can't validate any squares
 						if (solutionCount >= 2)
