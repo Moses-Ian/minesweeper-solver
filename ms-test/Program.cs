@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -68,8 +69,18 @@ namespace MSTest {
 			int cols = choppedMatrix.GetLength(1);
 
 
+			var watch = new System.Diagnostics.Stopwatch();
+									
+			watch.Start();
+			
+			// int[] safeSquares = bruteForceSolve(choppedMatrix, pointers);
+			int[] safeSquares = bruteForceSolveWithPruning(choppedMatrix, pointers);
 
-			int[] safeSquares = bruteForceSolve(choppedMatrix, pointers);
+			watch.Stop();
+
+			Console.WriteLine($"Execution Time: {watch.ElapsedMilliseconds} ms");
+
+
 			Console.WriteLine($"Chopped matrix {rows} rows x {cols} columns");
 			print(choppedMatrix);
 			Console.WriteLine("pointers:");
@@ -482,6 +493,207 @@ namespace MSTest {
 			
 			return safeSquares;
 			
+		}
+		
+		
+		static int[] bruteForceSolveWithPruning(sbyte[,] matrix, int[] pointers) {
+			int rows = matrix.GetLength(0);
+			int cols = matrix.GetLength(1);
+			int doneFlagCol = cols-1;
+			
+			// solution is a mask
+			// the done flag is element 31 -> 
+			uint solution = 0;
+			// int solution = (1 << 19);
+			
+			// uint doneFlagMask = 0x80000000;
+			uint doneFlagMask = (uint)(1 << (cols-1));
+			int doneFlagMaskLog2 = (int)Math.Log2(doneFlagMask);
+			// Console.WriteLine($"doneFlagMaskLog2={Math.Log2(doneFlagMask)} pointersLength={pointers.Length}");
+			
+			// finalSolution is an array with meaningful values
+			// -1: undefined
+			//  0: every solution has zero as the answer
+			//  1: every solution has one as the answer
+			//  2: some solutions have zero, some have one
+			sbyte[] finalSolution = new sbyte[pointers.Length];
+			Array.Fill<sbyte>(finalSolution, -1);
+			
+			// prune list
+			var pruneList = new ArrayList();
+			
+			// for each solution...
+			int prev = 1;
+			while((solution & doneFlagMask) != doneFlagMask) {
+				// Console.WriteLine($"solution={solution}");
+				// printSolution(solution, doneFlagMask);
+				// if (solution > (prev << 1)) {
+					// Console.WriteLine(Convert.ToString(solution, 2));
+					// prev <<= 1;
+				// }
+				
+				// check whether this solution should be pruned
+				uint newSolution;
+				bool result = prune(pruneList, solution, doneFlagMask, out newSolution);
+				if (result) {
+					// it should -> set solution to the updated value and try again
+					solution = newSolution;
+					continue;
+				}
+
+				// check each row
+				bool validSolution = true;
+				for (int row=0; row<rows; row++) {
+					// dot multiply the row by the solution
+					int total = 0;
+					for (uint mask = 1; mask<doneFlagMask; mask <<= 1) {
+						int col = (int)Math.Log2(mask);
+						int multiplier = (solution & mask) != 0 ? 1 : 0;
+						total += matrix[row, col] * multiplier;
+					}
+					// Console.WriteLine($"row={row} total={total} element={matrix[row, cols-1]}");
+					
+					// if the solution does not match the equation...
+					if (total != matrix[row, cols-1]) {
+						// this solution is invalid 
+						validSolution = false;
+						// -> add it to the prune list
+						addToPruneList(pruneList, solution, doneFlagMask, matrix, row);
+						// -> break
+						break;
+					}
+					// keep going!
+				}
+
+				if (validSolution) {
+					// Console.WriteLine("valid solution!");
+					// printSolution(solution, doneFlagMask);
+					// update finalSolution with our current solution
+					// Console.WriteLine($"doneFlagMask={doneFlagMask} Log2={Math.Log2(doneFlagMask)} finalSolution.Length={finalSolution.Length} matrix.Cols={matrix.GetLength(1)}");
+					for (uint mask = 1; mask<doneFlagMask; mask <<= 1) {
+						int col = (int)Math.Log2(mask);
+						sbyte bit = (sbyte)((solution & mask) != 0 ? 1 : 0);
+						if (finalSolution[col] == -1) {
+							finalSolution[col] = bit;
+						} else if (finalSolution[col] != bit) {
+							finalSolution[col] = 2;
+						}
+					}
+				}
+				
+				// iterate through the solutions
+				// if (solution >= 2)
+					// break;
+				solution++;
+			}
+			
+			Console.WriteLine("final solution:");
+			print(finalSolution);
+			
+			// create an int array with the correct size
+			int safeCount = 0;
+			for(int i=0; i<finalSolution.Length; i++) {
+				if (finalSolution[i] == 0)
+					safeCount++;
+			}
+			int[] safeSquares = new int[safeCount];
+			
+			// fill it with the safe pointers
+			safeCount = 0;
+			for(int i=0; i<finalSolution.Length; i++) {
+				if (finalSolution[i] == 0) {
+					safeSquares[safeCount] = pointers[i];
+					safeCount++;
+				}
+			}
+			
+			return safeSquares;
+			
+		}
+		
+		static void addToPruneList(ArrayList pruneList, uint solution, uint doneFlagMask, sbyte[,] matrix, int row) {
+			int doneFlagMaskLog2 = (int)Math.Log2(doneFlagMask);
+			// build the mask
+			uint mask = 0;
+			for (int i=0; i<doneFlagMaskLog2; i++) {
+				if (matrix[row, i] != 0) {
+					mask |= (uint)(1 << i);
+				}
+			}
+			// Console.WriteLine("solution:");
+			// printSolution(solution, doneFlagMask);
+			// Console.WriteLine("mask:");
+			// printSolution(mask, doneFlagMask);
+			// Console.WriteLine("solution & mask:");
+			// printSolution(solution & mask, doneFlagMask);
+			
+			// build the tuple
+			var tuple = new Tuple<uint, uint>(mask, solution & mask);
+			
+			// put the tuple in the array
+			pruneList.Add(tuple);
+			
+		}
+		
+		// this is purely for testing and visualization, so I added it here
+		static int skipped = 0;
+		
+		static bool prune(ArrayList pruneList, uint solution, uint doneFlagMask, out uint newSolution) {
+			// Console.ForegroundColor = ConsoleColor.Red;
+			// Console.WriteLine("checking whether to prune...");
+			// for each element in the pruneList...
+			for(int i=0; i<pruneList.Count; i++) {
+				// get the tuple
+				var tuple = (Tuple<uint, uint>)pruneList[i];
+				
+				// see if this solution is in the pruneList
+				uint mask = tuple.Item1;
+				uint pruneSolution = tuple.Item2;
+				if ((solution & mask) != pruneSolution) {
+					// don't prune it
+					continue;
+				}
+
+				// Console.WriteLine("solution:");
+				// printSolution(solution, doneFlagMask);
+				// Console.WriteLine("mask:");
+				// printSolution(mask, doneFlagMask);
+				// Console.WriteLine("pruneSolution:");
+				// printSolution(pruneSolution, doneFlagMask);
+				// Console.WriteLine("solution & mask:");
+				// printSolution(solution & mask, doneFlagMask);
+
+				// Console.WriteLine("...prune it!");
+				// prune it
+
+				// -> find the lsb
+				int negMask = (int)mask;
+				negMask = -negMask;
+				uint lsb = (mask & (uint)negMask);
+				// Console.WriteLine("lsb:");
+				// printSolution(lsb, doneFlagMask);
+				
+				// -> increment that
+				newSolution = solution + lsb;
+				
+				// -> set everything below the lsb back to zero, so we don't skip anything
+				int negLSB = (int)lsb;
+				negLSB = -negLSB;
+				// Console.WriteLine("negLSB:");
+				// printSolution((uint)negLSB, doneFlagMask);
+				newSolution = newSolution & (uint)negLSB;
+				
+				skipped += (int)(newSolution - solution);
+				// Console.WriteLine($"skipped {skipped}");
+				
+				// Console.ForegroundColor = ConsoleColor.White;
+				// -> return it
+				return true;
+			}
+			// Console.WriteLine("...don't prune");
+			Console.ForegroundColor = ConsoleColor.White;
+			newSolution = solution;
+			return false;
 		}
 		
 		static void printSolution(uint solution, uint doneFlagMask) {
