@@ -105,14 +105,18 @@ namespace Minesweeper_Solver {
 				Console.WriteLine("building matrix...");
 				cleanMatrix(matrix);
 				buildMatrix(matrix, gameState);
-				Console.WriteLine("built:");
-				print(matrix);
+				// Console.WriteLine("built:");
+				// print(matrix);
 					
 				// reduce matrix
 				Console.WriteLine("reducing matrix...");
-				reduce(matrix);
-				// rref(matrix);
+				bool wasSplit;
+				do {
+					reduce(matrix);
+					wasSplit = splitRows(matrix);
+				} while (wasSplit);
 				print(matrix);
+				// rref(matrix);
 				
 				// chop matrix
 				Console.WriteLine("chopping matrix...");
@@ -122,7 +126,7 @@ namespace Minesweeper_Solver {
 				// generate list of safe squares
 				// this is written for readability
 				Console.WriteLine("finding safe squares...");
-				int count = findSafeSquares(safeSquares, matrix);
+				int count = findSafeSquares(safeSquares, matrix, goodRows);
 
 				// if there are no safe squares, do a more in-depth search
 				if (count == 0) {
@@ -133,6 +137,7 @@ namespace Minesweeper_Solver {
 					// if count STILL is zero, we need to try something else
 					// for now, break
 					if (count == 0) {
+						print(pointers);
 						Console.WriteLine($"chopped matrix ({pointers.Length})");
 						print(choppedMatrix);
 						break;
@@ -179,15 +184,14 @@ namespace Minesweeper_Solver {
 				StringBuilder sb = new StringBuilder();
 				sb.Append("{ ");
 				bool allZero = true;
-				for(int j=0; j<cols-2; j++) {
+				for(int j=0; j<cols-1; j++) {
 					sb.Append(matrix[i, j].ToString());
 					if (matrix[i, j] != 0)
 						allZero = false;
-					// sb.Append(", ");
 				}
 				sb.Append(" | ");
 				sb.Append(matrix[i, cols-1].ToString());
-				sb.Append(" }");
+				sb.Append($" }} - {i}");
 				if (allZero) 
 					continue;
 				Console.WriteLine(sb.ToString());
@@ -431,6 +435,79 @@ namespace Minesweeper_Solver {
 			}
 		}
 		
+		static bool splitRows(sbyte[,] matrix) {
+			Console.WriteLine("splitting rows...");
+			// if rows have multiple mines in them, they don't get calculated correctly
+			int rows = matrix.GetLength(0);
+			int cols = matrix.GetLength(1);
+			bool wasSplit = false;
+			
+			// we need to find the first row that is all zeros
+			int targetRow = 0;
+			for (int i=0; i<rows; i++) {
+				bool allZeros = true;
+				for (int j=0; j<cols; j++) {
+					if (matrix[i, j] != 0) {
+						allZeros = false;
+						break;
+					}
+				}
+				if (!allZeros)
+					continue;
+				targetRow = i;
+				break;
+			}
+			
+			Console.WriteLine($"targetRow={targetRow}");
+			
+			// for each row...
+			for (int i=0; i<targetRow; i++) {
+				// ...we need to see if this row is all ones and has multiple ones
+				int count = 0;
+				bool allOnes = true;
+				for (int j=0; j<cols-1; j++) {
+					if (matrix[i, j] == 1)
+						count++;
+					if (matrix[i, j] != 0 && matrix[i, j] != 1) {
+						allOnes = false;
+						break;
+					}
+				}
+				
+				if (!allOnes)
+					continue;
+				
+				if (count != matrix[i, cols-1])
+					continue;
+				
+				if (count == 1)
+					continue;
+				
+				Console.ForegroundColor = ConsoleColor.Red;
+				Console.WriteLine($"splitting row {i}");
+				Console.ForegroundColor = ConsoleColor.White;
+				
+				// this row needs to be split
+				wasSplit = true;
+				for (int j=0; j<cols-1; j++) {
+					if (matrix[i, j] != 1) 
+						continue;
+					// split this row
+					matrix[i, j] = 0;
+					matrix[i, cols-1]--;
+					// put the split in the target row
+					matrix[targetRow, j] = 1;
+					matrix[targetRow, cols-1] = 1;
+					targetRow++;
+					// check to see if it's fully split
+					if (matrix[i, cols-1] == 1) 
+						break;
+				}
+			}
+			
+			return wasSplit;
+		}
+
 		private static sbyte[,] rref(sbyte[,] matrix) {            
 			int lead = 0, rowCount = matrix.GetLength(0), columnCount = matrix.GetLength(1);
 			for (int r = 0; r < rowCount; r++) {
@@ -518,7 +595,7 @@ namespace Minesweeper_Solver {
 			}
 		}
 		
-		static int findSafeSquares(int[,] safeSquares, sbyte[,] matrix) {
+		static int findSafeSquares(int[,] safeSquares, sbyte[,] matrix, int goodRows) {
 			// uses a brute-force method to solve each equation
 			// if there's only one solution, we can use it
 			// if there's more, we skip and move on
@@ -528,11 +605,12 @@ namespace Minesweeper_Solver {
 			int count = 0;
 			int safe = 0;
 			// for each row, brute force to see if there's a solution
-			for(int row=0; row<rows; row++) {
+			for(int row=0; row<goodRows; row++) {
 				Console.WriteLine($"--> solving row {row}");
 				// set up an array of variables, to point to the elements
 				count = 0;
 				for(int col=0; col<cols-1; col++) {
+					// Console.WriteLine($"row={row} col={col} element={matrix[row, col]}");
 					if (matrix[row, col] != 0) {
 						count++;
 					}
@@ -789,21 +867,23 @@ namespace Minesweeper_Solver {
 		static int bruteForceSolveWithPruning(int[,] safeSquares, sbyte[,] matrix, int[] pointers) {
 			if (pointers.Length > 31) {
 				Console.WriteLine("solution space too large!");
+				print(pointers);
 				return 0;
 			}
 			int rows = matrix.GetLength(0);
 			int cols = matrix.GetLength(1);
 			int doneFlagCol = cols-1;
 			
+			// Console.WriteLine($"rows={rows} cols={cols}");
+			// print(matrix);
+			
 			// solution is a mask
 			// the done flag is element 31 -> 
-			uint solution = 0;
-			// int solution = (1 << 19);
+			ulong solution = 0;
 			
-			// uint doneFlagMask = 0x80000000;
-			uint doneFlagMask = (uint)(1 << (cols-1));
+			ulong doneFlagMask = (ulong)(1UL << (cols-1));
 			int doneFlagMaskLog2 = (int)Math.Log2(doneFlagMask);
-			// Console.WriteLine($"doneFlagMaskLog2={Math.Log2(doneFlagMask)} pointersLength={pointers.Length}");
+			Console.WriteLine($"doneFlagMask={doneFlagMask} doneFlagMaskLog2={Math.Log2(doneFlagMask)} pointersLength={pointers.Length}");
 			
 			// finalSolution is an array with meaningful values
 			// -1: undefined
@@ -819,15 +899,10 @@ namespace Minesweeper_Solver {
 			// for each solution...
 			int prev = 1;
 			while((solution & doneFlagMask) != doneFlagMask) {
-				// Console.WriteLine($"solution={solution}");
-				// printSolution(solution, doneFlagMask);
-				// if (solution > (prev << 1)) {
-					// Console.WriteLine(Convert.ToString(solution, 2));
-					// prev <<= 1;
-				// }
+				// Console.WriteLine($"{(int)Math.Log2(solution)} / {doneFlagMaskLog2}");
 				
 				// check whether this solution should be pruned
-				uint newSolution;
+				ulong newSolution;
 				bool result = prune(pruneList, solution, doneFlagMask, out newSolution);
 				if (result) {
 					// it should -> set solution to the updated value and try again
@@ -840,9 +915,10 @@ namespace Minesweeper_Solver {
 				for (int row=0; row<rows; row++) {
 					// dot multiply the row by the solution
 					int total = 0;
-					for (uint mask = 1; mask<doneFlagMask; mask <<= 1) {
+					for (ulong mask = 1; mask<doneFlagMask; mask <<= 1) {
 						int col = (int)Math.Log2(mask);
 						int multiplier = (solution & mask) != 0 ? 1 : 0;
+						// Console.WriteLine($"{row} {col}");
 						total += matrix[row, col] * multiplier;
 					}
 					// Console.WriteLine($"row={row} total={total} element={matrix[row, cols-1]}");
@@ -864,7 +940,7 @@ namespace Minesweeper_Solver {
 					// printSolution(solution, doneFlagMask);
 					// update finalSolution with our current solution
 					// Console.WriteLine($"doneFlagMask={doneFlagMask} Log2={Math.Log2(doneFlagMask)} finalSolution.Length={finalSolution.Length} matrix.Cols={matrix.GetLength(1)}");
-					for (uint mask = 1; mask<doneFlagMask; mask <<= 1) {
+					for (ulong mask = 1; mask<doneFlagMask; mask <<= 1) {
 						int col = (int)Math.Log2(mask);
 						sbyte bit = (sbyte)((solution & mask) != 0 ? 1 : 0);
 						if (finalSolution[col] == -1) {
@@ -909,13 +985,13 @@ namespace Minesweeper_Solver {
 			
 		}
 		
-		static void addToPruneList(ArrayList pruneList, uint solution, uint doneFlagMask, sbyte[,] matrix, int row) {
+		static void addToPruneList(ArrayList pruneList, ulong solution, ulong doneFlagMask, sbyte[,] matrix, int row) {
 			int doneFlagMaskLog2 = (int)Math.Log2(doneFlagMask);
 			// build the mask
-			uint mask = 0;
+			ulong mask = 0;
 			for (int i=0; i<doneFlagMaskLog2; i++) {
 				if (matrix[row, i] != 0) {
-					mask |= (uint)(1 << i);
+					mask |= (ulong)(1UL << i);
 				}
 			}
 			// Console.WriteLine("solution:");
@@ -926,7 +1002,7 @@ namespace Minesweeper_Solver {
 			// printSolution(solution & mask, doneFlagMask);
 			
 			// build the tuple
-			var tuple = new Tuple<uint, uint>(mask, solution & mask);
+			var tuple = new Tuple<ulong, ulong>(mask, solution & mask);
 			
 			// put the tuple in the array
 			pruneList.Add(tuple);
@@ -936,17 +1012,17 @@ namespace Minesweeper_Solver {
 		// this is purely for testing and visualization, so I added it here
 		static int skipped = 0;
 		
-		static bool prune(ArrayList pruneList, uint solution, uint doneFlagMask, out uint newSolution) {
+		static bool prune(ArrayList pruneList, ulong solution, ulong doneFlagMask, out ulong newSolution) {
 			// Console.ForegroundColor = ConsoleColor.Red;
 			// Console.WriteLine("checking whether to prune...");
 			// for each element in the pruneList...
 			for(int i=0; i<pruneList.Count; i++) {
 				// get the tuple
-				var tuple = (Tuple<uint, uint>)pruneList[i];
+				var tuple = (Tuple<ulong, ulong>)pruneList[i];
 				
 				// see if this solution is in the pruneList
-				uint mask = tuple.Item1;
-				uint pruneSolution = tuple.Item2;
+				ulong mask = tuple.Item1;
+				ulong pruneSolution = tuple.Item2;
 				if ((solution & mask) != pruneSolution) {
 					// don't prune it
 					continue;
@@ -967,7 +1043,7 @@ namespace Minesweeper_Solver {
 				// -> find the lsb
 				int negMask = (int)mask;
 				negMask = -negMask;
-				uint lsb = (mask & (uint)negMask);
+				ulong lsb = (mask & (ulong)negMask);
 				// Console.WriteLine("lsb:");
 				// printSolution(lsb, doneFlagMask);
 				
@@ -978,8 +1054,8 @@ namespace Minesweeper_Solver {
 				int negLSB = (int)lsb;
 				negLSB = -negLSB;
 				// Console.WriteLine("negLSB:");
-				// printSolution((uint)negLSB, doneFlagMask);
-				newSolution = newSolution & (uint)negLSB;
+				// printSolution((ulong)negLSB, doneFlagMask);
+				newSolution = newSolution & (ulong)negLSB;
 				
 				skipped += (int)(newSolution - solution);
 				// Console.WriteLine($"skipped {skipped}");
