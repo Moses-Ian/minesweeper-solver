@@ -7,9 +7,9 @@ let MINES = 99;
 // let MINES = 15;
 let W = 20;
 let firstClick = true;
-// let seed = 0;	// in-depth solution can't find any safe squares
-let seed = 1;			// in-depth solution has 45 bits -> too large
-// let seed = 3;			// gets down to 4 unsolvable squares
+// let seed = 0;	// has to make a guess -> solves it
+// let seed = 1;			// solved
+let seed = 3;			// gets down to 4 unsolvable squares
 let squaresLeftP;
 
 function setup() {
@@ -20,8 +20,8 @@ function setup() {
 	colorMode(HSB);
 	
 	// create the seed block
-	randomSeed(seed);
-	createP(`Seed: ${seed}`);
+	// randomSeed(seed);
+	// createP(`Seed: ${seed}`);
 	
 	// create the board
 	grid = make2DArray(ROWS, COLS);

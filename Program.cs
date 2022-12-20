@@ -137,10 +137,15 @@ namespace Minesweeper_Solver {
 					// if count STILL is zero, we need to try something else
 					// for now, break
 					if (count == 0) {
+						Console.WriteLine("making a guess...");
+						count = guess(safeSquares, gameState);
 						print(pointers);
 						Console.WriteLine($"chopped matrix ({pointers.Length})");
 						print(choppedMatrix);
-						break;
+						// if there's no valid guess, just quit
+						if (count == 0) {
+							break;
+						}
 					}
 				}
 				printSafeSquares(safeSquares, count);
@@ -506,49 +511,6 @@ namespace Minesweeper_Solver {
 			}
 			
 			return wasSplit;
-		}
-
-		private static sbyte[,] rref(sbyte[,] matrix) {            
-			int lead = 0, rowCount = matrix.GetLength(0), columnCount = matrix.GetLength(1);
-			for (int r = 0; r < rowCount; r++) {
-				if (columnCount <= lead) break;
-				int i = r;
-				while (matrix[i, lead] == 0) {
-					i++;
-					if (i == rowCount) {
-						i = r;
-						lead++;
-						if (columnCount == lead) {
-							lead--;
-							break;
-						}
-					}
-				}
-				for (int j = 0; j < columnCount; j++) {
-					sbyte temp = matrix[r, j];
-					matrix[r, j] = matrix[i, j];
-					matrix[i, j] = temp;
-				}
-				sbyte div = matrix[r, lead];
-				if(div != 0)
-					for (int j = 0; j < columnCount; j++) {
-						if (matrix[r, j] == 1 && div == 2) {
-							Console.ForegroundColor = ConsoleColor.Red;
-							Console.WriteLine("BAD MATH");
-							Console.ForegroundColor = ConsoleColor.White;
-						}
-						matrix[r, j] /= div;                
-					}
-				for (int j = 0; j < rowCount; j++) {
-					if (j != r) {
-						sbyte sub = matrix[j, lead];
-						for (int k = 0; k < columnCount; k++) 
-							matrix[j, k] -= (sbyte)(sub * matrix[r, k]);
-					}
-				}
-				lead++;
-			}
-			return matrix;
 		}
 
 		static void findAndSwap(sbyte[,] matrix, int row, int col) {
@@ -1070,5 +1032,35 @@ namespace Minesweeper_Solver {
 			return false;
 		}
 		
+		static int guess(int[,] safeSquares, int[,] gameState) {
+			int rows = gameState.GetLength(0);
+			int cols = gameState.GetLength(1);
+			// we need to find a completely unchecked square
+			// one where it and every square around it are -1
+			for(int i=1; i<rows-1; i++) {
+				for(int j=1; j<cols-1; j++) {
+					bool result = isUnchecked(gameState, i, j);
+					if (!result)
+						continue;
+					
+					// we found a good square -> return it
+					safeSquares[0, 0] = i;
+					safeSquares[0, 1] = j;
+					return 1;
+				}
+			}
+			
+			// there are no such squares -> we need to make a different kind of guess
+			return 0;
+		}
+		
+		static bool isUnchecked(int[,] gameState, int row, int col) {
+			// check that every square in this 3x3 grid is -1
+			for (int i=-1; i<=1; i++) 
+				for (int j=-1; j<=1; j++) 
+					if (gameState[row+i, col+j] != -1)
+						return false;
+			return true;
+		}
 	}	
 }
