@@ -87,7 +87,7 @@ namespace Minesweeper_Solver {
 					// Color c = screenshot.GetPixel(13, i*20+10);
 					// double hue, saturation, value;
 					// ColorToHSV(c, out hue, out saturation, out value);
-					// int guess = makeGuess(hue, saturation, value);
+					// int guess = determineNumber(hue, saturation, value);
 					// Console.WriteLine($"{i} [h={hue} s={saturation} v={value}] {guess}");
 				// }
 				
@@ -105,14 +105,35 @@ namespace Minesweeper_Solver {
 				Console.WriteLine("building matrix...");
 				cleanMatrix(matrix);
 				buildMatrix(matrix, gameState);
-				// Console.WriteLine("built:");
-				// print(matrix);
+				Console.WriteLine("built:");
+				print(matrix);
+				
+				// echelon form
+				Console.WriteLine("reducing to echelon form...");
+				bool wasSplit;
+				int lastRow;
+				do {
+					lastRow = echelon(matrix);
+					wasSplit = splitRows(matrix);
+				} while (wasSplit);
+				print(matrix);
+				// generate list of safe squares
+				// this is written for readability
+				Console.WriteLine("finding safe squares...");
+				int count = findSafeSquares(safeSquares, matrix, lastRow);
+				if (count != 0) {
+					printSafeSquares(safeSquares, count);
 					
+					// click buttons
+					Console.WriteLine("clicking squares...");
+					clickSquares(safeSquares, count);
+					continue;
+				}
+				
 				// reduce matrix
 				Console.WriteLine("reducing matrix...");
-				bool wasSplit;
 				do {
-					reduce(matrix);
+					reduce(matrix, lastRow);
 					wasSplit = splitRows(matrix);
 				} while (wasSplit);
 				print(matrix);
@@ -126,26 +147,45 @@ namespace Minesweeper_Solver {
 				// generate list of safe squares
 				// this is written for readability
 				Console.WriteLine("finding safe squares...");
-				int count = findSafeSquares(safeSquares, matrix, goodRows);
-
+				count = findSafeSquares(safeSquares, matrix, goodRows);
+				if (count != 0) {
+					printSafeSquares(safeSquares, count);
+					
+					// click buttons
+					Console.WriteLine("clicking squares...");
+					clickSquares(safeSquares, count);
+					continue;
+				}
+				
 				// if there are no safe squares, do a more in-depth search
+				Console.WriteLine("...doing in-depth search");
+				int[] pointers;
+				sbyte[,] choppedMatrix = chopRowsAndColumns(matrix, out pointers);
+				count = bruteForceSolveWithPruning(safeSquares, choppedMatrix, pointers);
+				if (count != 0) {
+					printSafeSquares(safeSquares, count);
+					
+					// click buttons
+					Console.WriteLine("clicking squares...");
+					clickSquares(safeSquares, count);
+					continue;
+				}
+				break;
+
+
+
+
+				// if count STILL is zero, we need to try something else
+				// for now, break
 				if (count == 0) {
-					Console.WriteLine("...doing in-depth search");
-					int[] pointers;
-					sbyte[,] choppedMatrix = chopRowsAndColumns(matrix, out pointers);
-					count = bruteForceSolveWithPruning(safeSquares, choppedMatrix, pointers);
-					// if count STILL is zero, we need to try something else
-					// for now, break
+					// Console.WriteLine("making a guess...");
+					// count = guess(safeSquares, gameState);
+					// print(pointers);
+					// Console.WriteLine($"chopped matrix ({pointers.Length})");
+					// print(choppedMatrix);
+					// if there's no valid guess, just quit
 					if (count == 0) {
-						Console.WriteLine("making a guess...");
-						count = guess(safeSquares, gameState);
-						print(pointers);
-						Console.WriteLine($"chopped matrix ({pointers.Length})");
-						print(choppedMatrix);
-						// if there's no valid guess, just quit
-						if (count == 0) {
-							break;
-						}
+						break;
 					}
 				}
 				printSafeSquares(safeSquares, count);
@@ -285,6 +325,28 @@ namespace Minesweeper_Solver {
 			Console.WriteLine(sb.ToString());
 		}
 
+		static void print(long[] array) {
+			StringBuilder sb = new StringBuilder();
+			sb.Append("[ ");
+			for(int i=0; i<array.Length; i++) {
+				sb.Append(array[i].ToString());
+				sb.Append(' ');
+			}
+			sb.Append("]");
+			Console.WriteLine(sb.ToString());
+		}
+
+		static void printSolution(ulong solution, ulong doneFlagMask) {
+			StringBuilder sb = new StringBuilder();
+			sb.Append("[ ");
+			for(ulong mask=1; mask<doneFlagMask; mask<<=1) {
+				sb.Append((solution & mask) != 0 ? 1 : 0);
+				sb.Append(' ');
+			}
+			sb.Append("]");
+			Console.WriteLine(sb.ToString());
+		}
+		
 		static bool getGameState(Bitmap map, int[,] gameState) {
 			for (int i=0; i<HEIGHT; i++) {
 				for (int j=0; j<WIDTH; j++) {
@@ -304,7 +366,7 @@ namespace Minesweeper_Solver {
 			Color c = map.GetPixel(pixelX, pixelY);
 			double hue, saturation, value;
 			ColorToHSV(c, out hue, out saturation, out value);
-			return makeGuess(hue, saturation, value);
+			return determineNumber(hue, saturation, value);
 		}
 		
 		static void ColorToHSV(Color color, out double hue, out double saturation, out double value)	{
@@ -316,7 +378,7 @@ namespace Minesweeper_Solver {
 			value = max / 255d;
 		}
 		
-		static int makeGuess(double h, double s, double v) {
+		static int determineNumber(double h, double s, double v) {
 			if (h == 0 && s == 0 && v > .80 && v < .95) 
 				return 0;
 			if (h > 220 && h < 230)
@@ -356,12 +418,16 @@ namespace Minesweeper_Solver {
 			
 			// walk the matrix rows
 			for(int mRow=0; mRow<len; mRow++) {
+				if (mRow == 34)
+					Console.WriteLine("equation 34");
 				// which game element am i talking about?
 				int gRow = mRow / WIDTH;
 				int gCol = mRow % WIDTH;
 				// Console.WriteLine($"gRow={gRow} gCol={gCol}");
 				
 				// if the square is unclicked, skip
+				if (mRow == 34)
+					Console.WriteLine(gameState[gRow, gCol] == -1 || gameState[gRow, gCol] == 0);
 				if (gameState[gRow, gCol] == -1 || gameState[gRow, gCol] == 0)
 					continue;
 				// the value of the square goes into the last column
@@ -392,7 +458,7 @@ namespace Minesweeper_Solver {
 			matrix[len, len] = MINES;
 		}
 		
-		static void reduce(sbyte[,] matrix) {
+		static int echelon(sbyte[,] matrix) {
 			int len = WIDTH*HEIGHT+1;
 			// get first element to 1
 			int col = 0;
@@ -423,13 +489,17 @@ namespace Minesweeper_Solver {
 				zeroColumn(matrix, row, col);
 			}
 			
-			// Console.WriteLine("echelon form:");
-			// print(matrix);
+			return row;
+		}
 
+		static void reduce(sbyte[,] matrix, int lastRow) {
+			int row = lastRow;
+			int len = WIDTH*HEIGHT+1;
+			
 			// now go back upwards
 			for(row--; row>=0; row--) {
 				// find the leftmost 1
-				for(col=0; col<len-2; col++) {
+				for(int col=0; col<len-2; col++) {
 					if (matrix[row, col] == 1) {
 						// for each row above this one, get this column to zero
 						zeroColumnUpward(matrix, row, col);
@@ -827,16 +897,16 @@ namespace Minesweeper_Solver {
 		}
 		
 		static int bruteForceSolveWithPruning(int[,] safeSquares, sbyte[,] matrix, int[] pointers) {
-			if (pointers.Length > 31) {
-				Console.WriteLine("solution space too large!");
-				print(pointers);
-				return 0;
-			}
+			// if (pointers.Length > 31) {
+				// Console.WriteLine($"solution space too large! ({pointersLength})");
+				// print(pointers);
+				// return 0;
+			// }
 			int rows = matrix.GetLength(0);
 			int cols = matrix.GetLength(1);
 			int doneFlagCol = cols-1;
 			
-			// Console.WriteLine($"rows={rows} cols={cols}");
+			Console.WriteLine($"rows={rows} cols={cols}");
 			// print(matrix);
 			
 			// solution is a mask
@@ -852,8 +922,8 @@ namespace Minesweeper_Solver {
 			//  0: every solution has zero as the answer
 			//  1: every solution has one as the answer
 			//  2: some solutions have zero, some have one
-			sbyte[] finalSolution = new sbyte[pointers.Length];
-			Array.Fill<sbyte>(finalSolution, -1);
+			long[] finalSolution = new long[pointers.Length];
+			Array.Fill<long>(finalSolution, -1L);
 			
 			// prune list
 			var pruneList = new ArrayList();
@@ -862,11 +932,13 @@ namespace Minesweeper_Solver {
 			int prev = 1;
 			while((solution & doneFlagMask) != doneFlagMask) {
 				// Console.WriteLine($"{(int)Math.Log2(solution)} / {doneFlagMaskLog2}");
+				// Console.WriteLine($"{solution} / {doneFlagMask}");
 				
 				// check whether this solution should be pruned
 				ulong newSolution;
 				bool result = prune(pruneList, solution, doneFlagMask, out newSolution);
 				if (result) {
+					// Console.WriteLine($"pruning {solution} -> {newSolution}");
 					// it should -> set solution to the updated value and try again
 					solution = newSolution;
 					continue;
@@ -908,7 +980,9 @@ namespace Minesweeper_Solver {
 						if (finalSolution[col] == -1) {
 							finalSolution[col] = bit;
 						} else if (finalSolution[col] != bit) {
-							finalSolution[col] = 2;
+							// finalSolution[col] = 2;
+							finalSolution[col]++;
+							print(finalSolution);
 						}
 					}
 				}
@@ -956,18 +1030,19 @@ namespace Minesweeper_Solver {
 					mask |= (ulong)(1UL << i);
 				}
 			}
-			// Console.WriteLine("solution:");
-			// printSolution(solution, doneFlagMask);
-			// Console.WriteLine("mask:");
-			// printSolution(mask, doneFlagMask);
-			// Console.WriteLine("solution & mask:");
-			// printSolution(solution & mask, doneFlagMask);
+			Console.WriteLine("solution:");
+			printSolution(solution, doneFlagMask);
+			Console.WriteLine("mask:");
+			printSolution(mask, doneFlagMask);
+			Console.WriteLine("solution & mask:");
+			printSolution(solution & mask, doneFlagMask);
 			
 			// build the tuple
 			var tuple = new Tuple<ulong, ulong>(mask, solution & mask);
 			
 			// put the tuple in the array
 			pruneList.Add(tuple);
+			Console.WriteLine($"added to pruneList <{mask}, {solution & mask}>");
 			
 		}
 		

@@ -9,7 +9,8 @@ let W = 20;
 let firstClick = true;
 // let seed = 0;	// has to make a guess -> solves it
 // let seed = 1;			// solved
-let seed = 3;			// gets down to 4 unsolvable squares
+// let seed = 3;			// gets down to 4 unsolvable squares
+let seed = 4;			// gets down to 4 unsolvable squares
 let squaresLeftP;
 
 function setup() {
@@ -20,8 +21,8 @@ function setup() {
 	colorMode(HSB);
 	
 	// create the seed block
-	// randomSeed(seed);
-	// createP(`Seed: ${seed}`);
+	randomSeed(seed);
+	createP(`Seed: ${seed}`);
 	
 	// create the board
 	grid = make2DArray(ROWS, COLS);
