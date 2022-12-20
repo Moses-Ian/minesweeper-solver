@@ -162,7 +162,9 @@ namespace Minesweeper_Solver {
 				Console.WriteLine("...doing in-depth search");
 				int[] pointers;
 				long[] entropy;		// a list of *probabilities* that each square is a mine -> the lower the number, the more likely it's safe
+				Console.WriteLine("fully chopping matrix...");
 				sbyte[,] choppedMatrix = chopRowsAndColumns(matrix, out pointers);
+				print(choppedMatrix);
 				count = bruteForceSolveWithPruning(safeSquares, choppedMatrix, pointers, out entropy);
 				if (count != 0 && count != -1) {
 					printSafeSquares(safeSquares, count);
@@ -540,7 +542,7 @@ namespace Minesweeper_Solver {
 		static void simpleReduce(sbyte[,] matrix, int lastRow) {
 			// this is not the actual step of rref.
 			// this is modified, and only goes upward if the equation is *simple*
-			
+			// -> it says 'square = mine' and nothing else
 			
 			int row = lastRow;
 			int len = WIDTH*HEIGHT+1;
@@ -887,9 +889,8 @@ namespace Minesweeper_Solver {
 				for(int j=0; j<cols-1; j++) {
 					if (matrix[i, j] != 0 && matrix[i, j] != 1) {
 						allOnes = false;
-						break;
 					}
-					onesCount += matrix[i, j];
+					onesCount += Math.Abs(matrix[i, j]);
 				}
 				
 				// Console.WriteLine($"allOnes: {allOnes} onesCount: {onesCount} element: {matrix[i, cols-1]}");
@@ -975,6 +976,7 @@ namespace Minesweeper_Solver {
 		}
 		
 		static int bruteForceSolveWithPruning(int[,] safeSquares, sbyte[,] matrix, int[] pointers, out long[] finalSolution) {
+			// print(pointers);
 			// if (pointers.Length > 31) {
 				// Console.WriteLine($"solution space too large! ({pointersLength})");
 				// print(pointers);
@@ -985,12 +987,13 @@ namespace Minesweeper_Solver {
 			int doneFlagCol = cols-1;
 			int totalValid = 0;
 			
-			Console.WriteLine($"rows={rows} cols={cols}");
+			// Console.WriteLine($"rows={rows} cols={cols}");
 			// print(matrix);
 			
 			// solution is a mask
 			// the done flag is element 31 -> 
 			ulong solution = 0;
+			ulong solutionsChecked = 0;
 			
 			ulong doneFlagMask = (ulong)(1UL << (cols-1));
 			int doneFlagMaskLog2 = (int)Math.Log2(doneFlagMask);
@@ -1011,6 +1014,8 @@ namespace Minesweeper_Solver {
 			// for each solution...
 			int prev = 1;
 			while((solution & doneFlagMask) != doneFlagMask) {
+				solutionsChecked++;
+				// printSolution(solution, doneFlagMask);
 				// Console.WriteLine($"{(int)Math.Log2(solution)} / {doneFlagMaskLog2}");
 				// Console.WriteLine($"{solution} / {doneFlagMask}");
 				
@@ -1068,7 +1073,8 @@ namespace Minesweeper_Solver {
 				solution++;
 			}
 			
-			Console.WriteLine($"final solution ({totalValid}):");
+			Console.WriteLine($"solutionsChecked={solutionsChecked} totalValid={totalValid}");
+			Console.WriteLine($"final solution:");
 			print(finalSolution);
 			
 			if (totalValid == 0)
@@ -1108,19 +1114,19 @@ namespace Minesweeper_Solver {
 					mask |= (ulong)(1UL << i);
 				}
 			}
-			Console.WriteLine("solution:");
-			printSolution(solution, doneFlagMask);
-			Console.WriteLine("mask:");
-			printSolution(mask, doneFlagMask);
-			Console.WriteLine("solution & mask:");
-			printSolution(solution & mask, doneFlagMask);
+			// Console.WriteLine("solution:");
+			// printSolution(solution, doneFlagMask);
+			// Console.WriteLine("mask:");
+			// printSolution(mask, doneFlagMask);
+			// Console.WriteLine("solution & mask:");
+			// printSolution(solution & mask, doneFlagMask);
 			
 			// build the tuple
 			var tuple = new Tuple<ulong, ulong>(mask, solution & mask);
 			
 			// put the tuple in the array
 			pruneList.Add(tuple);
-			Console.WriteLine($"added to pruneList <{mask}, {solution & mask}>");
+			// Console.WriteLine($"added to pruneList <{mask}, {solution & mask}>");
 			
 		}
 		
@@ -1142,21 +1148,16 @@ namespace Minesweeper_Solver {
 					// don't prune it
 					continue;
 				}
-
-				// Console.WriteLine("solution:");
-				// printSolution(solution, doneFlagMask);
-				// Console.WriteLine("mask:");
+				
+				// Console.WriteLine("pruned by");
 				// printSolution(mask, doneFlagMask);
-				// Console.WriteLine("pruneSolution:");
 				// printSolution(pruneSolution, doneFlagMask);
-				// Console.WriteLine("solution & mask:");
-				// printSolution(solution & mask, doneFlagMask);
+				// Console.WriteLine("");
 
-				// Console.WriteLine("...prune it!");
 				// prune it
 
 				// -> find the lsb
-				int negMask = (int)mask;
+				long negMask = (long)mask;
 				negMask = -negMask;
 				ulong lsb = (mask & (ulong)negMask);
 				// Console.WriteLine("lsb:");
@@ -1180,7 +1181,7 @@ namespace Minesweeper_Solver {
 				return true;
 			}
 			// Console.WriteLine("...don't prune");
-			Console.ForegroundColor = ConsoleColor.White;
+			// Console.ForegroundColor = ConsoleColor.White;
 			newSolution = solution;
 			return false;
 		}
