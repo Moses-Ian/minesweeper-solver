@@ -97,7 +97,7 @@ namespace Minesweeper_Solver {
 				if (!result) {
 					break;
 				}
-				// print(gameState);
+				print(gameState);
 				
 				// turn the game state into a matrix
 				// convert to matrix
@@ -114,6 +114,7 @@ namespace Minesweeper_Solver {
 				int lastRow;
 				do {
 					lastRow = echelon(matrix);
+					simpleReduce(matrix, lastRow);
 					wasSplit = splitRows(matrix);
 				} while (wasSplit);
 				print(matrix);
@@ -160,9 +161,31 @@ namespace Minesweeper_Solver {
 				// if there are no safe squares, do a more in-depth search
 				Console.WriteLine("...doing in-depth search");
 				int[] pointers;
+				long[] entropy;		// a list of *probabilities* that each square is a mine -> the lower the number, the more likely it's safe
 				sbyte[,] choppedMatrix = chopRowsAndColumns(matrix, out pointers);
-				count = bruteForceSolveWithPruning(safeSquares, choppedMatrix, pointers);
-				if (count != 0) {
+				count = bruteForceSolveWithPruning(safeSquares, choppedMatrix, pointers, out entropy);
+				if (count != 0 && count != -1) {
+					printSafeSquares(safeSquares, count);
+					
+					// click buttons
+					Console.WriteLine("clicking squares...");
+					clickSquares(safeSquares, count);
+					continue;
+				} 
+				
+				if (count != -1) {
+					// we will pick the square with the lowest entropy value
+					long min = entropy[0];
+					int index = 0;
+					for (int i=1; i<entropy.Length; i++) {
+						if (entropy[i] < min) {
+							min = entropy[i];
+							index = i;
+						}
+					}
+					safeSquares[0, 0] = pointers[index] / WIDTH;
+					safeSquares[0, 1] = pointers[index] % WIDTH;
+					count = 1;
 					printSafeSquares(safeSquares, count);
 					
 					// click buttons
@@ -170,6 +193,10 @@ namespace Minesweeper_Solver {
 					clickSquares(safeSquares, count);
 					continue;
 				}
+				
+				// we may need to compare those to the probability of hitting a mine in a random square
+				
+				
 				break;
 
 
@@ -418,15 +445,15 @@ namespace Minesweeper_Solver {
 			
 			// walk the matrix rows
 			for(int mRow=0; mRow<len; mRow++) {
-				if (mRow == 34)
-					Console.WriteLine("equation 34");
+				if (mRow == 4)
+					Console.WriteLine("equation 4");
 				// which game element am i talking about?
 				int gRow = mRow / WIDTH;
 				int gCol = mRow % WIDTH;
 				// Console.WriteLine($"gRow={gRow} gCol={gCol}");
 				
 				// if the square is unclicked, skip
-				if (mRow == 34)
+				if (mRow == 4)
 					Console.WriteLine(gameState[gRow, gCol] == -1 || gameState[gRow, gCol] == 0);
 				if (gameState[gRow, gCol] == -1 || gameState[gRow, gCol] == 0)
 					continue;
@@ -508,6 +535,57 @@ namespace Minesweeper_Solver {
 				}
 				
 			}
+		}
+		
+		static void simpleReduce(sbyte[,] matrix, int lastRow) {
+			// this is not the actual step of rref.
+			// this is modified, and only goes upward if the equation is *simple*
+			
+			
+			int row = lastRow;
+			int len = WIDTH*HEIGHT+1;
+			
+			// now go back upwards
+			for(row--; row>=0; row--) {
+				if (!simpleRow(matrix, row))
+					continue;
+				// find the leftmost 1
+				for(int col=0; col<len-2; col++) {
+					if (matrix[row, col] == 1) {
+						// for each row above this one, get this column to zero
+						zeroColumnUpward(matrix, row, col);
+						break;
+					}
+				}
+				
+			}
+		}
+		
+		static bool simpleRow(sbyte[,] matrix, int row) {
+			int cols = matrix.GetLength(1);
+			// the last element must be 1
+			if (matrix[row, cols-1] != 1)
+				return false;
+			
+			int oneCount = 0;
+			for (int j=0; j<cols-1; j++) {
+				// elements must be zero or one
+				if (matrix[row, j] != 1 && matrix[row, j] != 0)
+					return false;
+				// there can only be 1 one
+				if (matrix[row, j] == 1) {
+					oneCount++;
+					if (oneCount > 1)
+						return false;
+				}
+			}
+			
+			// there must be one 1
+			if (oneCount == 0)
+				return false;
+			
+			// all checks passed!
+			return true;
 		}
 		
 		static bool splitRows(sbyte[,] matrix) {
@@ -896,7 +974,7 @@ namespace Minesweeper_Solver {
 			return chopped;
 		}
 		
-		static int bruteForceSolveWithPruning(int[,] safeSquares, sbyte[,] matrix, int[] pointers) {
+		static int bruteForceSolveWithPruning(int[,] safeSquares, sbyte[,] matrix, int[] pointers, out long[] finalSolution) {
 			// if (pointers.Length > 31) {
 				// Console.WriteLine($"solution space too large! ({pointersLength})");
 				// print(pointers);
@@ -905,6 +983,7 @@ namespace Minesweeper_Solver {
 			int rows = matrix.GetLength(0);
 			int cols = matrix.GetLength(1);
 			int doneFlagCol = cols-1;
+			int totalValid = 0;
 			
 			Console.WriteLine($"rows={rows} cols={cols}");
 			// print(matrix);
@@ -922,7 +1001,7 @@ namespace Minesweeper_Solver {
 			//  0: every solution has zero as the answer
 			//  1: every solution has one as the answer
 			//  2: some solutions have zero, some have one
-			long[] finalSolution = new long[pointers.Length];
+			finalSolution = new long[pointers.Length];
 			
 			// entropyCount is an array that checks every time a square was included in a solution
 			
@@ -971,6 +1050,7 @@ namespace Minesweeper_Solver {
 				}
 
 				if (validSolution) {
+					totalValid++;
 					// Console.WriteLine("valid solution!");
 					// printSolution(solution, doneFlagMask);
 					// update finalSolution with our current solution
@@ -988,8 +1068,11 @@ namespace Minesweeper_Solver {
 				solution++;
 			}
 			
-			Console.WriteLine("final solution:");
+			Console.WriteLine($"final solution ({totalValid}):");
 			print(finalSolution);
+			
+			if (totalValid == 0)
+				return -1;
 			
 			// create an int array with the correct size
 			int safeCount = 0;
