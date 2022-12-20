@@ -923,7 +923,8 @@ namespace Minesweeper_Solver {
 			//  1: every solution has one as the answer
 			//  2: some solutions have zero, some have one
 			long[] finalSolution = new long[pointers.Length];
-			Array.Fill<long>(finalSolution, -1L);
+			
+			// entropyCount is an array that checks every time a square was included in a solution
 			
 			// prune list
 			var pruneList = new ArrayList();
@@ -977,13 +978,7 @@ namespace Minesweeper_Solver {
 					for (ulong mask = 1; mask<doneFlagMask; mask <<= 1) {
 						int col = (int)Math.Log2(mask);
 						sbyte bit = (sbyte)((solution & mask) != 0 ? 1 : 0);
-						if (finalSolution[col] == -1) {
-							finalSolution[col] = bit;
-						} else if (finalSolution[col] != bit) {
-							// finalSolution[col] = 2;
-							finalSolution[col]++;
-							print(finalSolution);
-						}
+						finalSolution[col] += bit;
 					}
 				}
 				
