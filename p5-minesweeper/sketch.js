@@ -7,9 +7,9 @@ let MINES = 99;
 // let MINES = 15;
 let W = 20;
 let firstClick = true;
-let seed = -1;		// pick random seed
-// let seed = 0;	// has to make a guess -> fails
-// let seed = 1;			// solved
+// let seed = -1;		// pick random seed
+let seed = 0;	// has to make a guess -> fails
+// let seed = 1;			// solved without guessing
 // let seed = 3;			// gets down to 4 unsolvable squares -> fails
 // let seed = 4;			// has to make a guess -> fails
 let squaresLeftP;

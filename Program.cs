@@ -17,8 +17,6 @@ using OpenQA.Selenium.Interactions;
 
 namespace Minesweeper_Solver {
 	class Program {
-		static int FIRST_TOP = 90;
-		static int FIRST_LEFT = 45;
 		static int WIDTH = 30;
 		static int HEIGHT = 16;
 		static sbyte MINES = 99;
@@ -26,23 +24,22 @@ namespace Minesweeper_Solver {
 		// static int HEIGHT = 9;
 		// static sbyte MINES = 15;
 		static int SPACING = 20;
-		// static string processName = "MinesweeperClassic.exe";
-		// static string processLocation = "C:\\Program Files\\WindowsApps\\61424ShailendraSinghSoftw.44386E29E9F0D_1.0.0.0_x64__wr4tvb9qd6vv4\\MinesweeperClassic";
-		static int DELAY = 1500;
+		static string processLocation = @".\\tools\\chromedriver.exe";
+		static string processURL = @".\\p5-minesweeper\\index.html";
 		static IWebElement canvas;
 		static ChromeDriver driver;
-		static int x0;
+		static int x0;	// this is the location of the canvas on the screen
 		static int y0;
-		static int XOFF = 13;
+		static int XOFF = 13;	// this is the location of the pixel to check to determine the value
 		static int YOFF = 10;
 		
 		static void Main(string[] args) {
 			// setup chrome driver
 			new DriverManager().SetUpDriver(new ChromeConfig());
-			driver = new ChromeDriver(@".\\tools\\chromedriver.exe");
+			driver = new ChromeDriver(processLocation);
 			
 			// navigate to web page
-      driver.Navigate().GoToUrl(Path.GetFullPath(@".\\p5-minesweeper\\index.html"));
+      driver.Navigate().GoToUrl(Path.GetFullPath(processURL));
 			
 			// find the canvas
 			canvas = driver.FindElement(By.Id("defaultCanvas0"));
@@ -71,32 +68,22 @@ namespace Minesweeper_Solver {
 			Bitmap screenshot;
 			Rectangle crop = new Rectangle(canvasX, canvasY, canvasWidth, canvasHeight);
 			
-			// first click
-			initialClicks();
+			// first click -> click the center
+			canvas.Click();
 			
-			// take screenshot
 			while(true) {
-			// for(int runs=1; runs<=2; runs++) {
+				// take screenshot
 				Console.WriteLine("taking screenshot...");
 				byteArray = ((ITakesScreenshot)driver).GetScreenshot().AsByteArray;
 				screenshot = new System.Drawing.Bitmap(new System.IO.MemoryStream(byteArray));
 				screenshot = screenshot.Clone(crop, screenshot.PixelFormat);
 				
-				// get all the colors
-				// for(int i=0; i<=10; i++) {
-					// Color c = screenshot.GetPixel(13, i*20+10);
-					// double hue, saturation, value;
-					// ColorToHSV(c, out hue, out saturation, out value);
-					// int guess = determineNumber(hue, saturation, value);
-					// Console.WriteLine($"{i} [h={hue} s={saturation} v={value}] {guess}");
-				// }
-				
 				// use the data
 				Console.WriteLine("getting game state...");
 				bool result = getGameState(screenshot, gameState);
-				if (!result) {
+				// if we hit a mine, break
+				if (!result)
 					break;
-				}
 				print(gameState);
 				
 				// turn the game state into a matrix
@@ -138,7 +125,6 @@ namespace Minesweeper_Solver {
 					wasSplit = splitRows(matrix);
 				} while (wasSplit);
 				print(matrix);
-				// rref(matrix);
 				
 				// chop matrix
 				Console.WriteLine("chopping matrix...");
@@ -161,7 +147,7 @@ namespace Minesweeper_Solver {
 				// if there are no safe squares, do a more in-depth search
 				Console.WriteLine("...doing in-depth search");
 				int[] pointers;
-				long[] entropy;		// a list of *probabilities* that each square is a mine -> the lower the number, the more likely it's safe
+				long[] entropy;		// a list of relative probabilities that each square is a mine -> the lower the number, the more likely it's safe
 				Console.WriteLine("fully chopping matrix...");
 				sbyte[,] choppedMatrix = chopRowsAndColumns(matrix, out pointers);
 				print(choppedMatrix);
@@ -175,7 +161,9 @@ namespace Minesweeper_Solver {
 					continue;
 				} 
 				
-				if (count != -1) {
+				// if there are STILL no safe squares, we need to guess
+				Console.WriteLine("guessing...");
+				if (count == 0) {
 					// we will pick the square with the lowest entropy value
 					long min = entropy[0];
 					int index = 0;
@@ -196,61 +184,15 @@ namespace Minesweeper_Solver {
 					continue;
 				}
 				
-				// we may need to compare those to the probability of hitting a mine in a random square
-				
-				
-				break;
-
-
-
-
-				// if count STILL is zero, we need to try something else
-				// for now, break
-				if (count == 0) {
-					// Console.WriteLine("making a guess...");
-					// count = guess(safeSquares, gameState);
-					// print(pointers);
-					// Console.WriteLine($"chopped matrix ({pointers.Length})");
-					// print(choppedMatrix);
-					// if there's no valid guess, just quit
-					if (count == 0) {
-						break;
-					}
-				}
-				printSafeSquares(safeSquares, count);
-				
-				// click buttons
-				Console.WriteLine("clicking squares...");
-				clickSquares(safeSquares, count);
-				// Thread.Sleep(5000);
+				// count == -1
+				// -> just loop around again
 			}
 			
-			printCommas(matrix);
 			print(gameState);
 			Console.WriteLine("done");
 		}
 		
 		// METHODS
-		static void initialClicks() {
-			// click the center
-			canvas.Click();
-			
-			// these are for testing
-/*			
-			// click the top left
-			Actions actions = new Actions(driver);
-			actions.MoveToElement(canvas, x0, y0).Click().Build().Perform();
-			
-			// click the bottom right
-			actions.MoveToElement(canvas, x0+(WIDTH-1)*SPACING, y0+(HEIGHT-1)*SPACING).Click().Build().Perform();
-			
-			// click the bottom left and top right in one goto
-			actions.MoveToElement(canvas, x0+(WIDTH-1)*SPACING, y0).Click()
-				.MoveToElement(canvas, x0, y0+(HEIGHT-1)*SPACING).Click()
-				.Build().Perform();
-*/
-		}
-		
 		static void print(sbyte[,] matrix) {
 			int rows = matrix.GetLength(0);
 			int cols = matrix.GetLength(1);
@@ -721,11 +663,12 @@ namespace Minesweeper_Solver {
 				Console.WriteLine($"--> solving row {row}");
 				// set up an array of variables, to point to the elements
 				count = 0;
+				bool allOnes = true;
 				for(int col=0; col<cols-1; col++) {
-					// Console.WriteLine($"row={row} col={col} element={matrix[row, col]}");
-					if (matrix[row, col] != 0) {
+					if (matrix[row, col] != 0)
 						count++;
-					}
+					if (matrix[row, col] != 0 && matrix[row, col] != 1)
+						allOnes = false;
 				}
 
 				// if the row is all zeros, get out of here
@@ -733,7 +676,9 @@ namespace Minesweeper_Solver {
 					break;
 				
 				// if the row is too crazy, move on to the next row
-				if (count > 10)
+				// but if the row is 'simple' try it anyways
+				if (count > 10 && !(allOnes && matrix[row, cols-1] == 0))
+				// if (count > 10)
 					continue;
 				
 				
@@ -781,22 +726,18 @@ namespace Minesweeper_Solver {
 							break;
 						}
 					}
-					// print(solution);
 				}
-				if (solutionCount == 1) {
-					Console.WriteLine($"row {row}");
-					print(pointers);
-					print(prevSolution);
+
+				// this shouldn't happen
+				if (solutionCount == 0) {
+					Console.ForegroundColor = ConsoleColor.Blue;
+					Console.WriteLine("zero solutions");
+					Console.ForegroundColor = ConsoleColor.White;
 				}
 				
 				// if there's too many solutions, we can't validate any squares
 				if (solutionCount != 1)
 					continue;
-				
-				if (solutionCount == 0) {
-					Console.ForegroundColor = ConsoleColor.Blue;
-					Console.WriteLine("zero solutions");
-				}
 				
 				// add safe squares to the safeSquares array
 				Console.ForegroundColor = ConsoleColor.Red;
@@ -976,54 +917,37 @@ namespace Minesweeper_Solver {
 		}
 		
 		static int bruteForceSolveWithPruning(int[,] safeSquares, sbyte[,] matrix, int[] pointers, out long[] finalSolution) {
-			// print(pointers);
-			// if (pointers.Length > 31) {
-				// Console.WriteLine($"solution space too large! ({pointersLength})");
-				// print(pointers);
-				// return 0;
-			// }
+			if (pointers.Length > 63) {
+				Console.WriteLine($"solution space too large! ({pointers.Length})");
+				finalSolution = new long[0];
+				return 0;
+			}
 			int rows = matrix.GetLength(0);
 			int cols = matrix.GetLength(1);
 			int doneFlagCol = cols-1;
 			int totalValid = 0;
 			
-			// Console.WriteLine($"rows={rows} cols={cols}");
-			// print(matrix);
-			
 			// solution is a mask
 			// the done flag is element 31 -> 
 			ulong solution = 0;
-			ulong solutionsChecked = 0;
 			
 			ulong doneFlagMask = (ulong)(1UL << (cols-1));
 			int doneFlagMaskLog2 = (int)Math.Log2(doneFlagMask);
-			Console.WriteLine($"doneFlagMask={doneFlagMask} doneFlagMaskLog2={Math.Log2(doneFlagMask)} pointersLength={pointers.Length}");
 			
 			// finalSolution is an array with meaningful values
-			// -1: undefined
 			//  0: every solution has zero as the answer
-			//  1: every solution has one as the answer
-			//  2: some solutions have zero, some have one
+			//	>0: some solutions contain a mine -> the greater the number, the more often there's a mine
 			finalSolution = new long[pointers.Length];
-			
-			// entropyCount is an array that checks every time a square was included in a solution
 			
 			// prune list
 			var pruneList = new ArrayList();
 			
 			// for each solution...
-			int prev = 1;
 			while((solution & doneFlagMask) != doneFlagMask) {
-				solutionsChecked++;
-				// printSolution(solution, doneFlagMask);
-				// Console.WriteLine($"{(int)Math.Log2(solution)} / {doneFlagMaskLog2}");
-				// Console.WriteLine($"{solution} / {doneFlagMask}");
-				
 				// check whether this solution should be pruned
 				ulong newSolution;
 				bool result = prune(pruneList, solution, doneFlagMask, out newSolution);
 				if (result) {
-					// Console.WriteLine($"pruning {solution} -> {newSolution}");
 					// it should -> set solution to the updated value and try again
 					solution = newSolution;
 					continue;
@@ -1037,10 +961,8 @@ namespace Minesweeper_Solver {
 					for (ulong mask = 1; mask<doneFlagMask; mask <<= 1) {
 						int col = (int)Math.Log2(mask);
 						int multiplier = (solution & mask) != 0 ? 1 : 0;
-						// Console.WriteLine($"{row} {col}");
 						total += matrix[row, col] * multiplier;
 					}
-					// Console.WriteLine($"row={row} total={total} element={matrix[row, cols-1]}");
 					
 					// if the solution does not match the equation...
 					if (total != matrix[row, cols-1]) {
@@ -1056,10 +978,7 @@ namespace Minesweeper_Solver {
 
 				if (validSolution) {
 					totalValid++;
-					// Console.WriteLine("valid solution!");
-					// printSolution(solution, doneFlagMask);
 					// update finalSolution with our current solution
-					// Console.WriteLine($"doneFlagMask={doneFlagMask} Log2={Math.Log2(doneFlagMask)} finalSolution.Length={finalSolution.Length} matrix.Cols={matrix.GetLength(1)}");
 					for (ulong mask = 1; mask<doneFlagMask; mask <<= 1) {
 						int col = (int)Math.Log2(mask);
 						sbyte bit = (sbyte)((solution & mask) != 0 ? 1 : 0);
@@ -1068,24 +987,20 @@ namespace Minesweeper_Solver {
 				}
 				
 				// iterate through the solutions
-				// if (solution >= 2)
-					// break;
 				solution++;
 			}
 			
-			Console.WriteLine($"solutionsChecked={solutionsChecked} totalValid={totalValid}");
-			Console.WriteLine($"final solution:");
-			print(finalSolution);
-			
-			if (totalValid == 0)
+			// this shouldn't happen
+			if (totalValid == 0) {
+				Console.WriteLine("there were no valid solutions");
 				return -1;
+			}
 			
 			// create an int array with the correct size
 			int safeCount = 0;
-			for(int i=0; i<finalSolution.Length; i++) {
+			for(int i=0; i<finalSolution.Length; i++) 
 				if (finalSolution[i] == 0)
 					safeCount++;
-			}
 			
 			// fill it with the safe pointers
 			int safe = 0;
@@ -1216,5 +1131,6 @@ namespace Minesweeper_Solver {
 						return false;
 			return true;
 		}
+
 	}	
 }
