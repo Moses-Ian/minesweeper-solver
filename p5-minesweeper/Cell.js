@@ -8,7 +8,7 @@ class Cell {
 		this.mine = false;
 		this.revealed = false;
 		this.neighborCount;
-		this.flag = true;
+		this.flag = false;
 	}
 	
 	reveal = () => {

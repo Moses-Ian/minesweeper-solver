@@ -185,6 +185,8 @@ function gameOver() {
 				grid[i][j].reveal();
 		}
 	}
+	let p = createP("You hit a mine! :(");
+	p.class('game-over');
 	noLoop();
 }
 

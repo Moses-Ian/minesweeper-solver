@@ -76,6 +76,16 @@ namespace Minesweeper_Solver
 
             while (true)
             {
+								// check whether we hit a mine
+								bool hitMine = true;
+								try {
+									driver.FindElement(By.ClassName("game-over"));
+								} catch (OpenQA.Selenium.NoSuchElementException ex) {
+									hitMine = false;
+								}
+								if (hitMine)
+									break;
+							
                 // take screenshot
                 Console.WriteLine("taking screenshot...");
                 byteArray = ((ITakesScreenshot)driver).GetScreenshot().AsByteArray;
@@ -85,9 +95,6 @@ namespace Minesweeper_Solver
                 // use the data
                 Console.WriteLine("getting game state...");
                 bool result = getGameState(screenshot, gameState);
-                // if we hit a mine, break
-                if (!result)
-                    break;
                 print(gameState);
 
                 // turn the game state into a matrix
