@@ -35,8 +35,41 @@ namespace Minesweeper_Solver
         static int XOFF = 13;   // this is the location of the pixel to check to determine the value
         static int YOFF = 10;
 
+        // matrices
+        static byte[] byteArray;
+        static Bitmap screenshot;
+				static Rectangle crop;
+        static int[,] gameState;
+				static sbyte[,] matrix;
+				static int[,] safeSquares;
+
         static void Main(string[] args)
         {
+						// initialize the driver, matrices, and offsets
+						setup();
+						
+						
+						do {
+						
+							// try to solve the dang game
+							playTheGame();
+							
+							// see if we should run it again
+							var checkbox = driver.FindElement(By.TagName("input"));
+							if (!checkbox.Selected)
+								break;
+							
+							// we should -> refresh
+							driver.Navigate().Refresh();
+							
+						} while (true);
+						
+            print(gameState);
+            Console.WriteLine("done");
+        }
+
+				static void setup() 
+				{
             // setup chrome driver
             new DriverManager().SetUpDriver(new ChromeConfig());
             driver = new ChromeDriver(ProcessLocation);
@@ -46,7 +79,6 @@ namespace Minesweeper_Solver
 
             // find the canvas
             canvas = driver.FindElement(By.Id("defaultCanvas0"));
-            Console.WriteLine(canvas.Size.Width);
 
             // setup offsets
             int canvasWidth = canvas.Size.Width;
@@ -62,20 +94,24 @@ namespace Minesweeper_Solver
             int canvasY = canvas.Location.Y;
 
             // setup matrices
-            int[,] gameState = new int[HEIGHT, WIDTH];
+            gameState = new int[HEIGHT, WIDTH];
             // one row for each square, plus another for the number of mines
             // one column for each square, plus another for the data in each square
-            sbyte[,] matrix = new sbyte[WIDTH * HEIGHT + 1, WIDTH * HEIGHT + 1];
-            int[,] safeSquares = new int[HEIGHT * WIDTH, 2];
-            byte[] byteArray;
-            Bitmap screenshot;
-            Rectangle crop = new Rectangle(canvasX, canvasY, canvasWidth, canvasHeight);
+            matrix = new sbyte[WIDTH * HEIGHT + 1, WIDTH * HEIGHT + 1];
+            safeSquares = new int[HEIGHT * WIDTH, 2];
+            crop = new Rectangle(canvasX, canvasY, canvasWidth, canvasHeight);
+				}
+
+				static void playTheGame() 
+				{
+            // find the canvas after every refresh
+            canvas = driver.FindElement(By.Id("defaultCanvas0"));
 
             // first click -> click the center
             canvas.Click();
 
-            while (true)
-            {
+						while(true)
+						{
 								// check whether we hit a mine
 								bool hitMine = true;
 								try {
@@ -86,130 +122,127 @@ namespace Minesweeper_Solver
 								if (hitMine)
 									break;
 							
-                // take screenshot
-                Console.WriteLine("taking screenshot...");
-                byteArray = ((ITakesScreenshot)driver).GetScreenshot().AsByteArray;
-                screenshot = new System.Drawing.Bitmap(new System.IO.MemoryStream(byteArray));
-                screenshot = screenshot.Clone(crop, screenshot.PixelFormat);
+								// take screenshot
+								Console.WriteLine("taking screenshot...");
+								byteArray = ((ITakesScreenshot)driver).GetScreenshot().AsByteArray;
+								screenshot = new System.Drawing.Bitmap(new System.IO.MemoryStream(byteArray));
+								screenshot = screenshot.Clone(crop, screenshot.PixelFormat);
 
-                // use the data
-                Console.WriteLine("getting game state...");
-                bool result = getGameState(screenshot, gameState);
-                print(gameState);
+								// use the data
+								Console.WriteLine("getting game state...");
+								bool result = getGameState(screenshot, gameState);
+								print(gameState);
 
-                // turn the game state into a matrix
-                // convert to matrix
-                // we need a 2D array. 
-                Console.WriteLine("building matrix...");
-                cleanMatrix(matrix);
-                buildMatrix(matrix, gameState);
-                Console.WriteLine("built:");
-                print(matrix);
+								// turn the game state into a matrix
+								// convert to matrix
+								// we need a 2D array. 
+								Console.WriteLine("building matrix...");
+								cleanMatrix(matrix);
+								buildMatrix(matrix, gameState);
+								Console.WriteLine("built:");
+								print(matrix);
 
-                // echelon form
-                Console.WriteLine("reducing to echelon form...");
-                bool wasSplit;
-                int lastRow;
-                do
-                {
-                    lastRow = echelon(matrix);
-                    simpleReduce(matrix, lastRow);
-                    wasSplit = splitRows(matrix);
-                } while (wasSplit);
-                print(matrix);
-                // generate list of safe squares
-                // this is written for readability
-                Console.WriteLine("finding safe squares...");
-                int count = findSafeSquares(safeSquares, matrix, lastRow);
-                if (count != 0)
-                {
-                    printSafeSquares(safeSquares, count);
+								// echelon form
+								Console.WriteLine("reducing to echelon form...");
+								bool wasSplit;
+								int lastRow;
+								do
+								{
+										lastRow = echelon(matrix);
+										simpleReduce(matrix, lastRow);
+										wasSplit = splitRows(matrix);
+								} while (wasSplit);
+								print(matrix);
+								// generate list of safe squares
+								// this is written for readability
+								Console.WriteLine("finding safe squares...");
+								int count = findSafeSquares(safeSquares, matrix, lastRow);
+								if (count != 0)
+								{
+										printSafeSquares(safeSquares, count);
 
-                    // click buttons
-                    Console.WriteLine("clicking squares...");
-                    clickSquares(safeSquares, count);
-                    continue;
-                }
+										// click buttons
+										Console.WriteLine("clicking squares...");
+										clickSquares(safeSquares, count);
+										continue;
+								}
 
-                // reduce matrix
-                Console.WriteLine("reducing matrix...");
-                do
-                {
-                    reduce(matrix, lastRow);
-                    wasSplit = splitRows(matrix);
-                } while (wasSplit);
-                print(matrix);
+								// reduce matrix
+								Console.WriteLine("reducing matrix...");
+								do
+								{
+										reduce(matrix, lastRow);
+										wasSplit = splitRows(matrix);
+								} while (wasSplit);
+								print(matrix);
 
-                // chop matrix
-                Console.WriteLine("chopping matrix...");
-                int goodRows = chopRows(matrix);
-                print(matrix);
+								// chop matrix
+								Console.WriteLine("chopping matrix...");
+								int goodRows = chopRows(matrix);
+								print(matrix);
 
-                // generate list of safe squares
-                // this is written for readability
-                Console.WriteLine("finding safe squares...");
-                count = findSafeSquares(safeSquares, matrix, goodRows);
-                if (count != 0)
-                {
-                    printSafeSquares(safeSquares, count);
+								// generate list of safe squares
+								// this is written for readability
+								Console.WriteLine("finding safe squares...");
+								count = findSafeSquares(safeSquares, matrix, goodRows);
+								if (count != 0)
+								{
+										printSafeSquares(safeSquares, count);
 
-                    // click buttons
-                    Console.WriteLine("clicking squares...");
-                    clickSquares(safeSquares, count);
-                    continue;
-                }
+										// click buttons
+										Console.WriteLine("clicking squares...");
+										clickSquares(safeSquares, count);
+										continue;
+								}
 
-                // if there are no safe squares, do a more in-depth search
-                Console.WriteLine("...doing in-depth search");
-                int[] pointers;
-                long[] entropy;     // a list of relative probabilities that each square is a mine -> the lower the number, the more likely it's safe
-                Console.WriteLine("fully chopping matrix...");
-                sbyte[,] choppedMatrix = chopRowsAndColumns(matrix, out pointers);
-                print(choppedMatrix);
-                count = bruteForceSolveWithPruning(safeSquares, choppedMatrix, pointers, out entropy);
-                if (count != 0 && count != -1)
-                {
-                    printSafeSquares(safeSquares, count);
+								// if there are no safe squares, do a more in-depth search
+								Console.WriteLine("...doing in-depth search");
+								int[] pointers;
+								long[] entropy;     // a list of relative probabilities that each square is a mine -> the lower the number, the more likely it's safe
+								Console.WriteLine("fully chopping matrix...");
+								sbyte[,] choppedMatrix = chopRowsAndColumns(matrix, out pointers);
+								print(choppedMatrix);
+								count = bruteForceSolveWithPruning(safeSquares, choppedMatrix, pointers, out entropy);
+								if (count != 0 && count != -1)
+								{
+										printSafeSquares(safeSquares, count);
 
-                    // click buttons
-                    Console.WriteLine("clicking squares...");
-                    clickSquares(safeSquares, count);
-                    continue;
-                }
+										// click buttons
+										Console.WriteLine("clicking squares...");
+										clickSquares(safeSquares, count);
+										continue;
+								}
 
-                // if there are STILL no safe squares, we need to guess
-                Console.WriteLine("guessing...");
-                if (count == 0)
-                {
-                    // we will pick the square with the lowest entropy value
-                    long min = entropy[0];
-                    int index = 0;
-                    for (int i = 1; i < entropy.Length; i++)
-                    {
-                        if (entropy[i] < min)
-                        {
-                            min = entropy[i];
-                            index = i;
-                        }
-                    }
-                    safeSquares[0, 0] = pointers[index] / WIDTH;
-                    safeSquares[0, 1] = pointers[index] % WIDTH;
-                    count = 1;
-                    printSafeSquares(safeSquares, count);
+								// if there are STILL no safe squares, we need to guess
+								Console.WriteLine("guessing...");
+								if (count == 0)
+								{
+										// we will pick the square with the lowest entropy value
+										long min = entropy[0];
+										int index = 0;
+										for (int i = 1; i < entropy.Length; i++)
+										{
+												if (entropy[i] < min)
+												{
+														min = entropy[i];
+														index = i;
+												}
+										}
+										safeSquares[0, 0] = pointers[index] / WIDTH;
+										safeSquares[0, 1] = pointers[index] % WIDTH;
+										count = 1;
+										printSafeSquares(safeSquares, count);
 
-                    // click buttons
-                    Console.WriteLine("clicking squares...");
-                    clickSquares(safeSquares, count);
-                    continue;
-                }
+										// click buttons
+										Console.WriteLine("clicking squares...");
+										clickSquares(safeSquares, count);
+										continue;
+								}
 
-                // count == -1
-                // -> just loop around again
-            }
-
-            print(gameState);
-            Console.WriteLine("done");
-        }
+								// count == -1
+								// -> just loop around again
+						}
+				}
 
         // METHODS
         static void print(sbyte[,] matrix)

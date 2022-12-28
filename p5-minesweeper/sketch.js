@@ -48,26 +48,10 @@ function setup() {
 	createP(`Mines: ${MINES}`);
 	squaresLeftP = createP();
 	
-	// for testing
-	// for(let i=0; i<=8; i++) {
-		// grid[i][0].neighborCount = i;
-		// grid[i][0].revealed = true;
-		// grid[i][0].mine = false;
-	// }
-	// grid[9][0].revealed = true;
-	// grid[9][0].mine = true;
+	// create the automatic refresh toggle
+	let checkbox = createCheckbox('Auto-Refresh (Bot Only)', true);
+	checkbox.class('auto-refresh');
 	
-	// for setting up custom grids
-	// ROWS = 5;
-	// COLS = 5;
-	// MINES = 5;
-	// grid = customGrid();
-	// for(let i=0; i<ROWS; i++) {
-		// for(let j=0; j<COLS; j++) {
-			// grid[i][j].countNeighbors();
-		// }
-	// }
-	// firstClick = false;
 	
 }
 
