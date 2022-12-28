@@ -19,6 +19,9 @@ function setup() {
 	let canvas = createCanvas(COLS*W+2, ROWS*W+2);
 	canvas.parent('sketch-container');
 	
+	// turn off the right-click-menu
+	canvas.elt.addEventListener('contextmenu', e => e.preventDefault());
+	
 	colorMode(HSB);
 	
 	// create the seed block
@@ -113,25 +116,33 @@ function getCell(x, y) {
 }
 
 function mousePressed() {
-	// console.log(`mouse clicked at ${mouseX}, ${mouseY}`);
+	if (mouseButton === RIGHT) {
+		rightClick();
+		return;
+	}
 	
+	let cell = getCell(mouseX, mouseY);
+	if (cell.flag)
+		return;
+
 	if (firstClick) {
 		moveMines(mouseX, mouseY);
 		firstClick = false;
 	}
 	
-	getCell(mouseX, mouseY).reveal();
+	cell.reveal();
 	
-	if (getCell(mouseX, mouseY).mine) {
-		cell = getCell(mouseX, mouseY);
-		console.log(`clicked on ${cell.i} ${cell.j}`);
+	if (cell.mine) {
 		cell.clicked = true;
 		gameOver();
 	}
 }
 
+function rightClick() {
+	getCell(mouseX, mouseY).toggleFlag();
+}
+
 function moveMines(x, y) {
-	console.log("moving mines");
 	let row = Math.floor(y/W);
 	let col = Math.floor(x/W);
 	for(let i=-1; i<=1; i++) {

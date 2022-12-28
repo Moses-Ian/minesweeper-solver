@@ -4,12 +4,13 @@
   "description": "",
   "scripts": {
     "start": "browser-sync start --server -f -w",
-		"deploy": "gh-pages -d ."
-	},
+    "deploy": "gh-pages -d ."
+  },
   "keywords": [],
   "author": "Ian Moses",
   "license": "ISC",
   "devDependencies": {
+    "browser-sync": "^2.27.11",
     "gh-pages": "^4.0.0"
   }
 }

@@ -8,6 +8,7 @@ class Cell {
 		this.mine = false;
 		this.revealed = false;
 		this.neighborCount;
+		this.flag = true;
 	}
 	
 	reveal = () => {
@@ -53,6 +54,10 @@ class Cell {
 		this.neighborCount = total;
 	}
 	
+	toggleFlag = () => {
+		this.flag = !this.flag;
+	}
+	
 	show = () => {
 		stroke(0);
 		noFill();
@@ -78,6 +83,15 @@ class Cell {
 					text(this.neighborCount, this.x+this.w*.5, this.y+this.w*.85);
 				}
 			}
+		} else if (this.flag) {
+			fill(0, 0, 0);
+			rect(this.x+6, this.y+3, 2, 13);
+			fill(0, 100, 100);
+			triangle(
+				this.x+7, this.y+3, 
+				this.x+7, this.y+10,
+				this.x+17, this.y+7
+			);
 		}
 	}
 }
