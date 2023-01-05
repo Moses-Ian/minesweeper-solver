@@ -27,7 +27,8 @@ namespace Minesweeper_Solver
         // static sbyte MINES = 15;
         static int SPACING = 20;
         static string ProcessLocation = @".\\tools\\chromedriver.exe";
-        static string ProcessURL = @".\\p5-minesweeper\\index.html";
+        // static string ProcessURL = Path.GetFullPath(@".\\p5-minesweeper\\index.html");
+				static string ProcessURL = @"https://moses-ian.github.io/minesweeper-solver/";
         static IWebElement canvas;
         static ChromeDriver driver;
         static int x0;  // this is the location of the canvas on the screen
@@ -75,7 +76,7 @@ namespace Minesweeper_Solver
             driver = new ChromeDriver(ProcessLocation);
 
             // navigate to web page
-            driver.Navigate().GoToUrl(Path.GetFullPath(ProcessURL));
+            driver.Navigate().GoToUrl(ProcessURL);
 
             // find the canvas
             canvas = driver.FindElement(By.Id("defaultCanvas0"));
