@@ -1,10 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net7.0-windows</TargetFramework>
     <RootNamespace>Minesweeper_Solver</RootNamespace>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<PublishSingleFile>true</PublishSingleFile>
+		<SelfContained>true</SelfContained>
   </PropertyGroup>
 
   <ItemGroup>

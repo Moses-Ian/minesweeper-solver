@@ -29,6 +29,7 @@ namespace Minesweeper_Solver
         static string ProcessLocation = @".\\tools\\chromedriver.exe";
         // static string ProcessURL = Path.GetFullPath(@".\\p5-minesweeper\\index.html");
 				static string ProcessURL = @"https://moses-ian.github.io/minesweeper-solver/";
+				static bool HIDE_CONSOLE = false;
         static IWebElement canvas;
         static ChromeDriver driver;
         static int x0;  // this is the location of the canvas on the screen
@@ -73,7 +74,11 @@ namespace Minesweeper_Solver
 				{
             // setup chrome driver
             new DriverManager().SetUpDriver(new ChromeConfig());
-            driver = new ChromeDriver(ProcessLocation);
+						var cds = ChromeDriverService.CreateDefaultService();
+						cds.HideCommandPromptWindow = HIDE_CONSOLE;
+						var options = new ChromeOptions();
+						options.AddArgument(ProcessLocation);
+            driver = new ChromeDriver(cds, options);
 
             // navigate to web page
             driver.Navigate().GoToUrl(ProcessURL);
@@ -474,8 +479,6 @@ namespace Minesweeper_Solver
             // walk the matrix rows
             for (int mRow = 0; mRow < len; mRow++)
             {
-                if (mRow == 4)
-                    Console.WriteLine("equation 4");
                 // which game element am i talking about?
                 int gRow = mRow / WIDTH;
                 int gCol = mRow % WIDTH;
