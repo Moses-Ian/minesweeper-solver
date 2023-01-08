@@ -28,6 +28,10 @@ function setup() {
 	if (seed != -1) {
 		randomSeed(seed);
 		createP(`Seed: ${seed}`);
+	} else {
+		// this way, we can see the seed in the console
+		seed = Math.random();
+		randomSeed(seed);
 	}
 	
 	// create the board
@@ -70,7 +74,8 @@ function draw() {
 	squaresLeftP.html(`Squares left: ${squaresLeft}`);
 	
 	if (squaresLeft == MINES) {
-		createP("Finished! :)");
+		let p = createP("Finished! :)");
+		p.class('finished');
 		noLoop();
 	}
 }
