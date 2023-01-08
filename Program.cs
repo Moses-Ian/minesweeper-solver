@@ -27,7 +27,7 @@ namespace Minesweeper_Solver
         // static sbyte MINES = 15;
         static int SPACING = 20;
         static string ProcessLocation = @".\\tools\\chromedriver.exe";
-        static string ProcessURL = Path.GetFullPath(@".\\p5-minesweeper\\index.html");
+        static string ProcessURL = Path.GetFullPath(@".\\p5-minesweeper\\index.html?bot=true");
 				// static string ProcessURL = @"https://moses-ian.github.io/minesweeper-solver/";
 				static bool HIDE_CONSOLE = true;
         static IWebElement canvas;

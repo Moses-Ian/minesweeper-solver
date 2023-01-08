@@ -8,9 +8,16 @@
   <style>
     body {
       padding: 0;
-      margin: 0;
+      margin: 5px;
     }
+		#blink {
+			transition: 0.4s;
+		}
+		#warning {
+			margin-top: 100px;
+		}
   </style>
+	<script src="script.js"></script>
   <script src="./p5/p5.js"></script>
   <!-- <script src="../addons/p5.sound.js"></script> -->
   <script src="Cell.js"></script>
@@ -19,7 +26,14 @@
 </head>
 
 <body>
-	<div id="sketch-container"></div>
+	<div>
+		<div id="sketch-container"></div>
+	</div>
+	<div id="warning" style="display:block">
+		<h2 id="blink">WARNING! DO NOT CLOSE THE WINDOW!</h2>
+		<p>Instead, uncheck the 'Auto-Refresh (Bot Only)' box and let the bot finish the game.</p>
+		<p>The bot will close the window automatically.</p>
+	</div>
 </body>
 
 </html>
