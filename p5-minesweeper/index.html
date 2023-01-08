@@ -16,6 +16,9 @@
 		#warning {
 			margin-top: 100px;
 		}
+		div {
+			margin: 5px;
+		}
   </style>
 	<script src="script.js"></script>
   <script src="./p5/p5.js"></script>
@@ -26,13 +29,22 @@
 </head>
 
 <body>
-	<div>
-		<div id="sketch-container"></div>
-	</div>
-	<div id="warning" style="display:block">
-		<h2 id="blink">WARNING! DO NOT CLOSE THE WINDOW!</h2>
-		<p>Instead, uncheck the 'Auto-Refresh (Bot Only)' box and let the bot finish the game.</p>
-		<p>The bot will close the window automatically.</p>
+	<div style="display:flex; flex-wrap:wrap">
+		<div>
+			<div id="sketch-container"></div>
+		</div>
+		<div id="warning" style="display:none">
+			<h2 id="blink">WARNING! DO NOT CLOSE THE WINDOW!</h2>
+			<p>Instead, uncheck the 'Auto-Refresh (Bot Only)' box and let the bot finish the game.</p>
+			<p>The bot will close the window automatically.</p>
+		</div>
+		<div id="download" style="align-self:center">
+			<label>To see the bot solve the game, download and run this file:</label>
+			<form method="get" action="../Minesweeper-Solver.exe">
+				<button type="submit">Download</button>
+			</form>
+			<p>Requires Windows and Google Chrome</p>
+		</div>
 	</div>
 </body>
 
