@@ -12,6 +12,7 @@ let firstClick = true;
 // let seed = 1;			// solved without guessing
 // let seed = 3;			// gets down to 4 unsolvable squares -> fails
 // let seed = 4;			// has to make a guess -> fails
+let seed = 6080882401530505;	// has to make a guess out in the ocean -> fails after a while
 let squaresLeftP;
 
 function setup() {

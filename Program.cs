@@ -240,6 +240,7 @@ namespace Minesweeper_Solver
 								Console.WriteLine("fully chopping matrix...");
 								sbyte[,] choppedMatrix = chopRowsAndColumns(matrix, out pointers);
 								// print(choppedMatrix);
+								Console.WriteLine("brute force solve...");
 								count = bruteForceSolveWithPruning(safeSquares, choppedMatrix, pointers, out entropy);
 								if (count != 0 && count != -1)
 								{
@@ -261,8 +262,8 @@ namespace Minesweeper_Solver
 								}
 
 								// if there are STILL no safe squares, we need to guess
-								Console.WriteLine("guessing...");
-								if (count == 0)
+								Console.WriteLine("guessing based on entropy...");
+								if (count == 0 && entropy.Length != 0)
 								{
 										Console.WriteLine($"pointers length={pointers.Length} entropy length={entropy.Length}");
 										// we will pick the square with the lowest entropy value
@@ -276,8 +277,7 @@ namespace Minesweeper_Solver
 														index = i;
 												}
 										}
-										Console.WriteLine($"safe squares ({safeSquares.Length}):");
-										print(safeSquares);
+										Console.WriteLine($"safe squares ({count}):");
 										safeSquares[0, 0] = pointers[index] / WIDTH;
 										safeSquares[0, 1] = pointers[index] % WIDTH;
 										count = 1;
@@ -287,6 +287,36 @@ namespace Minesweeper_Solver
 										Console.WriteLine("clicking squares...");
 										clickSquares(safeSquares, count);
 										continue;
+								}
+								
+								// we can't guess based on entropy
+								// -> guess a square that is out in the ocean
+								Console.WriteLine("making a guess out in the ocean...");
+								if (count == 0 && entropy.Length == 0)
+								{
+									count = guess(safeSquares, gameState);
+									
+									printSafeSquares(safeSquares, count);
+
+									// click buttons
+									Console.WriteLine("clicking squares...");
+									clickSquares(safeSquares, count);
+									continue;
+								}
+								
+								// for some reason even that is impossible
+								// -> make a total guess
+								Console.WriteLine("making a total guess...");
+								if (count == 0)
+								{
+									count = totalGuess(safeSquares, gameState);
+									
+									printSafeSquares(safeSquares, count);
+
+									// click buttons
+									Console.WriteLine("clicking squares...");
+									clickSquares(safeSquares, count);
+									continue;
 								}
 
 								// count == -1
@@ -1078,7 +1108,7 @@ namespace Minesweeper_Solver
                         break;
                     }
                 }
-
+								
                 // ...chop it
                 if (allZero)
                 {
@@ -1125,7 +1155,8 @@ namespace Minesweeper_Solver
 
         static int bruteForceSolveWithPruning(int[,] safeSquares, sbyte[,] matrix, int[] pointers, out long[] finalSolution)
         {
-            if (pointers.Length > 63)
+						Console.WriteLine($"pointers length={pointers.Length}");
+            if (pointers.Length > 41)
             {
                 Console.WriteLine($"solution space too large! ({pointers.Length})");
                 finalSolution = new long[0];
@@ -1359,6 +1390,32 @@ namespace Minesweeper_Solver
                     if (gameState[row + i, col + j] != -1)
                         return false;
             return true;
+        }
+				
+        static int totalGuess(int[,] safeSquares, int[,] gameState)
+        {
+						// TODO: check for obvious mines
+						
+            int rows = gameState.GetLength(0);
+            int cols = gameState.GetLength(1);
+            // we need to find a square
+            // literally any square
+            for (int i = 1; i < rows - 1; i++)
+            {
+                for (int j = 1; j < cols - 1; j++)
+                {
+										if (gameState[i, j] != -1)
+											continue;
+										
+                    // we found a good square -> return it
+                    safeSquares[0, 0] = i;
+                    safeSquares[0, 1] = j;
+                    return 1;
+                }
+            }
+
+            // this shouldn't be possible
+            return 0;
         }
 
     }
