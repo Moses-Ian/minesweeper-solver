@@ -7,7 +7,7 @@ let MINES = 99;
 // let MINES = 15;
 let W = 20;
 let firstClick = true;
-let seed = -1;		// pick random seed
+// let seed = -1;		// pick random seed -> you can see the seed in the console window
 // let seed = 0;	// has to make a guess -> fails
 // let seed = 1;			// solved without guessing
 // let seed = 3;			// gets down to 4 unsolvable squares -> fails
@@ -28,6 +28,10 @@ function setup() {
 	if (seed != -1) {
 		randomSeed(seed);
 		createP(`Seed: ${seed}`);
+	} else {
+		// this way, we can see the seed in the console
+		seed = Math.random() * Number.MAX_SAFE_INTEGER;
+		randomSeed(seed);
 	}
 	
 	// create the board

@@ -27,8 +27,8 @@ namespace Minesweeper_Solver
         // static sbyte MINES = 15;
         static int SPACING = 20;
         static string ProcessLocation = @".\\tools\\chromedriver.exe";
-        // static string ProcessURL = Path.GetFullPath(@".\\p5-minesweeper\\index.html");
-				static string ProcessURL = @"https://moses-ian.github.io/minesweeper-solver/";
+        static string ProcessURL = Path.GetFullPath(@".\\p5-minesweeper\\index.html");
+				// static string ProcessURL = @"https://moses-ian.github.io/minesweeper-solver/";
 				static bool HIDE_CONSOLE = true;
         static IWebElement canvas;
         static ChromeDriver driver;
@@ -250,11 +250,21 @@ namespace Minesweeper_Solver
 										clickSquares(safeSquares, count);
 										continue;
 								}
+								
+								// if pointers length is zero, that means we finished
+								// but there was a race condition and the finished element didn't appear quickly enough
+								// -> retry the loop
+								if (pointers.Length == 0)
+								{
+									Console.WriteLine("we won but missed the element");
+									continue;
+								}
 
 								// if there are STILL no safe squares, we need to guess
 								Console.WriteLine("guessing...");
 								if (count == 0)
 								{
+										Console.WriteLine($"pointers length={pointers.Length} entropy length={entropy.Length}");
 										// we will pick the square with the lowest entropy value
 										long min = entropy[0];
 										int index = 0;
@@ -266,6 +276,8 @@ namespace Minesweeper_Solver
 														index = i;
 												}
 										}
+										Console.WriteLine($"safe squares ({safeSquares.Length}):");
+										print(safeSquares);
 										safeSquares[0, 0] = pointers[index] / WIDTH;
 										safeSquares[0, 1] = pointers[index] % WIDTH;
 										count = 1;
@@ -1044,6 +1056,7 @@ namespace Minesweeper_Solver
 
             // need to set targetRow back one to get the correct number of valid rows
             targetRow--;
+						targetRow = Math.Max(targetRow, 0);
 
             // finally, zero out everything after the target row
             for (int i = targetRow; i < rows; i++)
