@@ -70,7 +70,8 @@ function draw() {
 	squaresLeftP.html(`Squares left: ${squaresLeft}`);
 	
 	if (squaresLeft == MINES) {
-		createP("Finished! :)");
+		let p = createP("Finished! :)");
+		p.class('finished');
 		noLoop();
 	}
 }

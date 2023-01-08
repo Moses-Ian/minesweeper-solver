@@ -29,7 +29,7 @@ namespace Minesweeper_Solver
         static string ProcessLocation = @".\\tools\\chromedriver.exe";
         // static string ProcessURL = Path.GetFullPath(@".\\p5-minesweeper\\index.html");
 				static string ProcessURL = @"https://moses-ian.github.io/minesweeper-solver/";
-				static bool HIDE_CONSOLE = false;
+				static bool HIDE_CONSOLE = true;
         static IWebElement canvas;
         static ChromeDriver driver;
         static int x0;  // this is the location of the canvas on the screen
@@ -50,24 +50,36 @@ namespace Minesweeper_Solver
 						// initialize the driver, matrices, and offsets
 						setup();
 						
-						
-						do {
-						
-							// try to solve the dang game
-							playTheGame();
+						do 
+						{
+							try
+							{
+								// try to solve the dang game
+								Console.WriteLine("start playing the game");
+								playTheGame();
 							
-							// see if we should run it again
-							var checkbox = driver.FindElement(By.TagName("input"));
-							if (!checkbox.Selected)
+								// see if we should run it again
+								var checkbox = driver.FindElement(By.TagName("input"));
+								if (!checkbox.Selected)
+									break;
+								
+								// we should -> refresh
+								Console.WriteLine("refresh the page");
+								driver.Navigate().Refresh();
+							} 
+							// check whether the window was closed
+							catch (OpenQA.Selenium.WebDriverException)
+							{
+								Console.WriteLine("window was closed");
 								break;
-							
-							// we should -> refresh
-							driver.Navigate().Refresh();
-							
-						} while (true);
+							}
+						} 
+						while (true);
 						
             print(gameState);
             Console.WriteLine("done");
+						driver.Close();
+						driver.Quit();
         }
 
 				static void setup() 
@@ -111,6 +123,7 @@ namespace Minesweeper_Solver
 				static void playTheGame() 
 				{
             // find the canvas after every refresh
+						Console.WriteLine("getting the canvas...");
             canvas = driver.FindElement(By.Id("defaultCanvas0"));
 
             // first click -> click the center
@@ -120,12 +133,30 @@ namespace Minesweeper_Solver
 						{
 								// check whether we hit a mine
 								bool hitMine = true;
-								try {
+								try 
+								{
+									Console.WriteLine("getting the game-over element...");
 									driver.FindElement(By.ClassName("game-over"));
-								} catch (OpenQA.Selenium.NoSuchElementException ex) {
+								} 
+								catch (OpenQA.Selenium.NoSuchElementException) 
+								{
 									hitMine = false;
 								}
 								if (hitMine)
+									break;
+								
+								// check whether we won
+								bool finished = true;
+								try 
+								{
+									Console.WriteLine("getting the finished element...");
+									driver.FindElement(By.ClassName("finished"));
+								} 
+								catch (OpenQA.Selenium.NoSuchElementException) 
+								{
+									finished = false;
+								}
+								if (finished)
 									break;
 							
 								// take screenshot
@@ -137,7 +168,7 @@ namespace Minesweeper_Solver
 								// use the data
 								Console.WriteLine("getting game state...");
 								bool result = getGameState(screenshot, gameState);
-								print(gameState);
+								// print(gameState);
 
 								// turn the game state into a matrix
 								// convert to matrix
@@ -146,7 +177,7 @@ namespace Minesweeper_Solver
 								cleanMatrix(matrix);
 								buildMatrix(matrix, gameState);
 								Console.WriteLine("built:");
-								print(matrix);
+								// print(matrix);
 
 								// echelon form
 								Console.WriteLine("reducing to echelon form...");
@@ -158,7 +189,8 @@ namespace Minesweeper_Solver
 										simpleReduce(matrix, lastRow);
 										wasSplit = splitRows(matrix);
 								} while (wasSplit);
-								print(matrix);
+								// print(matrix);
+								
 								// generate list of safe squares
 								// this is written for readability
 								Console.WriteLine("finding safe squares...");
@@ -180,12 +212,12 @@ namespace Minesweeper_Solver
 										reduce(matrix, lastRow);
 										wasSplit = splitRows(matrix);
 								} while (wasSplit);
-								print(matrix);
+								// print(matrix);
 
 								// chop matrix
 								Console.WriteLine("chopping matrix...");
 								int goodRows = chopRows(matrix);
-								print(matrix);
+								// print(matrix);
 
 								// generate list of safe squares
 								// this is written for readability
@@ -207,7 +239,7 @@ namespace Minesweeper_Solver
 								long[] entropy;     // a list of relative probabilities that each square is a mine -> the lower the number, the more likely it's safe
 								Console.WriteLine("fully chopping matrix...");
 								sbyte[,] choppedMatrix = chopRowsAndColumns(matrix, out pointers);
-								print(choppedMatrix);
+								// print(choppedMatrix);
 								count = bruteForceSolveWithPruning(safeSquares, choppedMatrix, pointers, out entropy);
 								if (count != 0 && count != -1)
 								{
@@ -917,7 +949,7 @@ namespace Minesweeper_Solver
                 int pixelY = safeSquares[i, 0] * SPACING + y0;
                 actions.MoveToElement(canvas, pixelX, pixelY).Click();
             }
-            actions.Build().Perform();
+						actions.Build().Perform();
         }
 
         static int chopRows(sbyte[,] matrix)
