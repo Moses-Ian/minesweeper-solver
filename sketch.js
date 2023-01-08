@@ -7,11 +7,12 @@ let MINES = 99;
 // let MINES = 15;
 let W = 20;
 let firstClick = true;
-let seed = -1;		// pick random seed
+let seed = -1;		// pick random seed -> you can see the seed in the console window
 // let seed = 0;	// has to make a guess -> fails
 // let seed = 1;			// solved without guessing
 // let seed = 3;			// gets down to 4 unsolvable squares -> fails
 // let seed = 4;			// has to make a guess -> fails
+// let seed = 6080882401530505;	// has to make a guess out in the ocean -> fails after a while
 let squaresLeftP;
 
 function setup() {
@@ -27,10 +28,10 @@ function setup() {
 	// create the seed block
 	if (seed != -1) {
 		randomSeed(seed);
-		createP(`Seed: ${seed}`);
+		createP(`Seed: ${seed}`).parent("sketch-container");
 	} else {
 		// this way, we can see the seed in the console
-		seed = Math.random();
+		seed = Math.random() * Number.MAX_SAFE_INTEGER;
 		randomSeed(seed);
 	}
 	
@@ -49,12 +50,14 @@ function setup() {
 	}
 	
 	// create the squaresLeft block
-	createP(`Mines: ${MINES}`);
+	createP(`Mines: ${MINES}`).parent("sketch-container");
 	squaresLeftP = createP();
+	squaresLeftP.parent("sketch-container");
 	
 	// create the automatic refresh toggle
 	let checkbox = createCheckbox('Auto-Refresh (Bot Only)', true);
 	checkbox.class('auto-refresh');
+	checkbox.parent("sketch-container");
 	
 	
 }
@@ -76,6 +79,7 @@ function draw() {
 	if (squaresLeft == MINES) {
 		let p = createP("Finished! :)");
 		p.class('finished');
+		p.parent("sketch-container");
 		noLoop();
 	}
 }
@@ -176,6 +180,7 @@ function gameOver() {
 	}
 	let p = createP("You hit a mine! :(");
 	p.class('game-over');
+	p.parent("sketch-container");
 	noLoop();
 }
 
