@@ -15,4 +15,8 @@ window.onload = () => {
 		downloadElement.style.display = 'none';
 		
 	}
+
+	document.getElementById("games-played").innerText = localStorage.getItem("games-played") || "0";
+	document.getElementById("games-won").innerText = localStorage.getItem("games-won") || "0";
+	document.getElementById("win-rate").innerText = localStorage.getItem("win-rate") || "0";
 }

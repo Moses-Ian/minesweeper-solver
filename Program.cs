@@ -26,10 +26,11 @@ namespace Minesweeper_Solver
         // static int HEIGHT = 9;
         // static sbyte MINES = 15;
         static int SPACING = 20;
-        static string ProcessLocation = @".\\tools\\chromedriver.exe";
+        static string ProcessLocation = @".\\chromedriver";
         // static string ProcessURL = Path.GetFullPath(@".\\p5-minesweeper\\index.html?bot=true");
-				static string ProcessURL = @"https://moses-ian.github.io/minesweeper-solver/?bot=true";
-				static bool HIDE_CONSOLE = true;
+        static string ProcessURL = @"https://moses-ian.github.io/minesweeper-solver/?bot=true";
+        static string ChromeLocation = @".\\chrome\\chrome.exe";
+        static bool HIDE_CONSOLE = true;
         static IWebElement canvas;
         static ChromeDriver driver;
         static int x0;  // this is the location of the canvas on the screen
@@ -40,56 +41,59 @@ namespace Minesweeper_Solver
         // matrices
         static byte[] byteArray;
         static Bitmap screenshot;
-				static Rectangle crop;
+        static Rectangle crop;
         static int[,] gameState;
-				static sbyte[,] matrix;
-				static int[,] safeSquares;
+        static sbyte[,] matrix;
+        static int[,] safeSquares;
 
         static void Main(string[] args)
         {
-						// initialize the driver, matrices, and offsets
-						setup();
-						
-						do 
-						{
-							try
-							{
-								// try to solve the dang game
-								Console.WriteLine("start playing the game");
-								playTheGame();
-							
-								// see if we should run it again
-								var checkbox = driver.FindElement(By.TagName("input"));
-								if (!checkbox.Selected)
-									break;
-								
-								// we should -> refresh
-								Console.WriteLine("refresh the page");
-								driver.Navigate().Refresh();
-							} 
-							// check whether the window was closed
-							catch (OpenQA.Selenium.WebDriverException)
-							{
-								Console.WriteLine("window was closed");
-								break;
-							}
-						} 
-						while (true);
-						
+            // initialize the driver, matrices, and offsets
+            setup();
+
+            do
+            {
+                try
+                {
+                    // try to solve the dang game
+                    Console.WriteLine("start playing the game");
+                    playTheGame();
+
+                    // see if we should run it again
+                    var checkbox = driver.FindElement(By.TagName("input"));
+                    if (!checkbox.Selected)
+                        break;
+
+                    // we should -> refresh
+                    Console.WriteLine("refresh the page");
+                    driver.Navigate().Refresh();
+                }
+                // check whether the window was closed
+                catch (OpenQA.Selenium.WebDriverException)
+                {
+                    Console.WriteLine("window was closed");
+                    break;
+                }
+            }
+            while (true);
+
             print(gameState);
             Console.WriteLine("done");
-						driver.Close();
-						driver.Quit();
+            driver.Close();
+            driver.Quit();
         }
 
-				static void setup() 
-				{
+        static void setup()
+        {
+            Console.WriteLine(ProcessLocation);
+
             // setup chrome driver
             new DriverManager().SetUpDriver(new ChromeConfig());
-						var cds = ChromeDriverService.CreateDefaultService();
-						cds.HideCommandPromptWindow = HIDE_CONSOLE;
-						var options = new ChromeOptions();
-						options.AddArgument(ProcessLocation);
+            var cds = ChromeDriverService.CreateDefaultService(ProcessLocation);
+            cds.HideCommandPromptWindow = HIDE_CONSOLE;
+            var options = new ChromeOptions();
+            //options.AddArgument(ProcessLocation);
+            options.BinaryLocation = ChromeLocation;
             driver = new ChromeDriver(cds, options);
 
             // navigate to web page
@@ -118,211 +122,211 @@ namespace Minesweeper_Solver
             matrix = new sbyte[WIDTH * HEIGHT + 1, WIDTH * HEIGHT + 1];
             safeSquares = new int[HEIGHT * WIDTH, 2];
             crop = new Rectangle(canvasX, canvasY, canvasWidth, canvasHeight);
-				}
+        }
 
-				static void playTheGame() 
-				{
+        static void playTheGame()
+        {
             // find the canvas after every refresh
-						Console.WriteLine("getting the canvas...");
+            Console.WriteLine("getting the canvas...");
             canvas = driver.FindElement(By.Id("defaultCanvas0"));
 
             // first click -> click the center
             canvas.Click();
 
-						while(true)
-						{
-								// check whether we hit a mine
-								bool hitMine = true;
-								try 
-								{
-									Console.WriteLine("getting the game-over element...");
-									driver.FindElement(By.ClassName("game-over"));
-								} 
-								catch (OpenQA.Selenium.NoSuchElementException) 
-								{
-									hitMine = false;
-								}
-								if (hitMine)
-									break;
-								
-								// check whether we won
-								bool finished = true;
-								try 
-								{
-									Console.WriteLine("getting the finished element...");
-									driver.FindElement(By.ClassName("finished"));
-								} 
-								catch (OpenQA.Selenium.NoSuchElementException) 
-								{
-									finished = false;
-								}
-								if (finished)
-									break;
-							
-								// take screenshot
-								Console.WriteLine("taking screenshot...");
-								byteArray = ((ITakesScreenshot)driver).GetScreenshot().AsByteArray;
-								screenshot = new System.Drawing.Bitmap(new System.IO.MemoryStream(byteArray));
-								screenshot = screenshot.Clone(crop, screenshot.PixelFormat);
+            while (true)
+            {
+                // check whether we hit a mine
+                bool hitMine = true;
+                try
+                {
+                    Console.WriteLine("getting the game-over element...");
+                    driver.FindElement(By.ClassName("game-over"));
+                }
+                catch (OpenQA.Selenium.NoSuchElementException)
+                {
+                    hitMine = false;
+                }
+                if (hitMine)
+                    break;
 
-								// use the data
-								Console.WriteLine("getting game state...");
-								bool result = getGameState(screenshot, gameState);
-								// print(gameState);
+                // check whether we won
+                bool finished = true;
+                try
+                {
+                    Console.WriteLine("getting the finished element...");
+                    driver.FindElement(By.ClassName("finished"));
+                }
+                catch (OpenQA.Selenium.NoSuchElementException)
+                {
+                    finished = false;
+                }
+                if (finished)
+                    break;
 
-								// turn the game state into a matrix
-								// convert to matrix
-								// we need a 2D array. 
-								Console.WriteLine("building matrix...");
-								cleanMatrix(matrix);
-								buildMatrix(matrix, gameState);
-								Console.WriteLine("built:");
-								// print(matrix);
+                // take screenshot
+                Console.WriteLine("taking screenshot...");
+                byteArray = ((ITakesScreenshot)driver).GetScreenshot().AsByteArray;
+                screenshot = new System.Drawing.Bitmap(new System.IO.MemoryStream(byteArray));
+                screenshot = screenshot.Clone(crop, screenshot.PixelFormat);
 
-								// echelon form
-								Console.WriteLine("reducing to echelon form...");
-								bool wasSplit;
-								int lastRow;
-								do
-								{
-										lastRow = echelon(matrix);
-										simpleReduce(matrix, lastRow);
-										wasSplit = splitRows(matrix);
-								} while (wasSplit);
-								// print(matrix);
-								
-								// generate list of safe squares
-								// this is written for readability
-								Console.WriteLine("finding safe squares...");
-								int count = findSafeSquares(safeSquares, matrix, lastRow);
-								if (count != 0)
-								{
-										printSafeSquares(safeSquares, count);
+                // use the data
+                Console.WriteLine("getting game state...");
+                bool result = getGameState(screenshot, gameState);
+                // print(gameState);
 
-										// click buttons
-										Console.WriteLine("clicking squares...");
-										clickSquares(safeSquares, count);
-										continue;
-								}
+                // turn the game state into a matrix
+                // convert to matrix
+                // we need a 2D array. 
+                Console.WriteLine("building matrix...");
+                cleanMatrix(matrix);
+                buildMatrix(matrix, gameState);
+                Console.WriteLine("built:");
+                // print(matrix);
 
-								// reduce matrix
-								Console.WriteLine("reducing matrix...");
-								do
-								{
-										reduce(matrix, lastRow);
-										wasSplit = splitRows(matrix);
-								} while (wasSplit);
-								// print(matrix);
+                // echelon form
+                Console.WriteLine("reducing to echelon form...");
+                bool wasSplit;
+                int lastRow;
+                do
+                {
+                    lastRow = echelon(matrix);
+                    simpleReduce(matrix, lastRow);
+                    wasSplit = splitRows(matrix);
+                } while (wasSplit);
+                // print(matrix);
 
-								// chop matrix
-								Console.WriteLine("chopping matrix...");
-								int goodRows = chopRows(matrix);
-								// print(matrix);
+                // generate list of safe squares
+                // this is written for readability
+                Console.WriteLine("finding safe squares...");
+                int count = findSafeSquares(safeSquares, matrix, lastRow);
+                if (count != 0)
+                {
+                    printSafeSquares(safeSquares, count);
 
-								// generate list of safe squares
-								// this is written for readability
-								Console.WriteLine("finding safe squares...");
-								count = findSafeSquares(safeSquares, matrix, goodRows);
-								if (count != 0)
-								{
-										printSafeSquares(safeSquares, count);
+                    // click buttons
+                    Console.WriteLine("clicking squares...");
+                    clickSquares(safeSquares, count);
+                    continue;
+                }
 
-										// click buttons
-										Console.WriteLine("clicking squares...");
-										clickSquares(safeSquares, count);
-										continue;
-								}
+                // reduce matrix
+                Console.WriteLine("reducing matrix...");
+                do
+                {
+                    reduce(matrix, lastRow);
+                    wasSplit = splitRows(matrix);
+                } while (wasSplit);
+                // print(matrix);
 
-								// if there are no safe squares, do a more in-depth search
-								Console.WriteLine("...doing in-depth search");
-								int[] pointers;
-								long[] entropy;     // a list of relative probabilities that each square is a mine -> the lower the number, the more likely it's safe
-								Console.WriteLine("fully chopping matrix...");
-								sbyte[,] choppedMatrix = chopRowsAndColumns(matrix, out pointers);
-								// print(choppedMatrix);
-								Console.WriteLine("brute force solve...");
-								count = bruteForceSolveWithPruning(safeSquares, choppedMatrix, pointers, out entropy);
-								if (count != 0 && count != -1)
-								{
-										printSafeSquares(safeSquares, count);
+                // chop matrix
+                Console.WriteLine("chopping matrix...");
+                int goodRows = chopRows(matrix);
+                // print(matrix);
 
-										// click buttons
-										Console.WriteLine("clicking squares...");
-										clickSquares(safeSquares, count);
-										continue;
-								}
-								
-								// if pointers length is zero, that means we finished
-								// but there was a race condition and the finished element didn't appear quickly enough
-								// -> retry the loop
-								if (pointers.Length == 0)
-								{
-									Console.WriteLine("we won but missed the element");
-									continue;
-								}
+                // generate list of safe squares
+                // this is written for readability
+                Console.WriteLine("finding safe squares...");
+                count = findSafeSquares(safeSquares, matrix, goodRows);
+                if (count != 0)
+                {
+                    printSafeSquares(safeSquares, count);
 
-								// if there are STILL no safe squares, we need to guess
-								Console.WriteLine("guessing based on entropy...");
-								if (count == 0 && entropy.Length != 0)
-								{
-										Console.WriteLine($"pointers length={pointers.Length} entropy length={entropy.Length}");
-										// we will pick the square with the lowest entropy value
-										long min = entropy[0];
-										int index = 0;
-										for (int i = 1; i < entropy.Length; i++)
-										{
-												if (entropy[i] < min)
-												{
-														min = entropy[i];
-														index = i;
-												}
-										}
-										Console.WriteLine($"safe squares ({count}):");
-										safeSquares[0, 0] = pointers[index] / WIDTH;
-										safeSquares[0, 1] = pointers[index] % WIDTH;
-										count = 1;
-										printSafeSquares(safeSquares, count);
+                    // click buttons
+                    Console.WriteLine("clicking squares...");
+                    clickSquares(safeSquares, count);
+                    continue;
+                }
 
-										// click buttons
-										Console.WriteLine("clicking squares...");
-										clickSquares(safeSquares, count);
-										continue;
-								}
-								
-								// we can't guess based on entropy
-								// -> guess a square that is out in the ocean
-								Console.WriteLine("making a guess out in the ocean...");
-								if (count == 0 && entropy.Length == 0)
-								{
-									count = guess(safeSquares, gameState);
-									
-									printSafeSquares(safeSquares, count);
+                // if there are no safe squares, do a more in-depth search
+                Console.WriteLine("...doing in-depth search");
+                int[] pointers;
+                long[] entropy;     // a list of relative probabilities that each square is a mine -> the lower the number, the more likely it's safe
+                Console.WriteLine("fully chopping matrix...");
+                sbyte[,] choppedMatrix = chopRowsAndColumns(matrix, out pointers);
+                // print(choppedMatrix);
+                Console.WriteLine("brute force solve...");
+                count = bruteForceSolveWithPruning(safeSquares, choppedMatrix, pointers, out entropy);
+                if (count != 0 && count != -1)
+                {
+                    printSafeSquares(safeSquares, count);
 
-									// click buttons
-									Console.WriteLine("clicking squares...");
-									clickSquares(safeSquares, count);
-									continue;
-								}
-								
-								// for some reason even that is impossible
-								// -> make a total guess
-								Console.WriteLine("making a total guess...");
-								if (count == 0)
-								{
-									count = totalGuess(safeSquares, gameState);
-									
-									printSafeSquares(safeSquares, count);
+                    // click buttons
+                    Console.WriteLine("clicking squares...");
+                    clickSquares(safeSquares, count);
+                    continue;
+                }
 
-									// click buttons
-									Console.WriteLine("clicking squares...");
-									clickSquares(safeSquares, count);
-									continue;
-								}
+                // if pointers length is zero, that means we finished
+                // but there was a race condition and the finished element didn't appear quickly enough
+                // -> retry the loop
+                if (pointers.Length == 0)
+                {
+                    Console.WriteLine("we won but missed the element");
+                    continue;
+                }
 
-								// count == -1
-								// -> just loop around again
-						}
-				}
+                // if there are STILL no safe squares, we need to guess
+                Console.WriteLine("guessing based on entropy...");
+                if (count == 0 && entropy.Length != 0)
+                {
+                    Console.WriteLine($"pointers length={pointers.Length} entropy length={entropy.Length}");
+                    // we will pick the square with the lowest entropy value
+                    long min = entropy[0];
+                    int index = 0;
+                    for (int i = 1; i < entropy.Length; i++)
+                    {
+                        if (entropy[i] < min)
+                        {
+                            min = entropy[i];
+                            index = i;
+                        }
+                    }
+                    Console.WriteLine($"safe squares ({count}):");
+                    safeSquares[0, 0] = pointers[index] / WIDTH;
+                    safeSquares[0, 1] = pointers[index] % WIDTH;
+                    count = 1;
+                    printSafeSquares(safeSquares, count);
+
+                    // click buttons
+                    Console.WriteLine("clicking squares...");
+                    clickSquares(safeSquares, count);
+                    continue;
+                }
+
+                // we can't guess based on entropy
+                // -> guess a square that is out in the ocean
+                Console.WriteLine("making a guess out in the ocean...");
+                if (count == 0 && entropy.Length == 0)
+                {
+                    count = guess(safeSquares, gameState);
+
+                    printSafeSquares(safeSquares, count);
+
+                    // click buttons
+                    Console.WriteLine("clicking squares...");
+                    clickSquares(safeSquares, count);
+                    continue;
+                }
+
+                // for some reason even that is impossible
+                // -> make a total guess
+                Console.WriteLine("making a total guess...");
+                if (count == 0)
+                {
+                    count = totalGuess(safeSquares, gameState);
+
+                    printSafeSquares(safeSquares, count);
+
+                    // click buttons
+                    Console.WriteLine("clicking squares...");
+                    clickSquares(safeSquares, count);
+                    continue;
+                }
+
+                // count == -1
+                // -> just loop around again
+            }
+        }
 
         // METHODS
         static void print(sbyte[,] matrix)
@@ -991,7 +995,7 @@ namespace Minesweeper_Solver
                 int pixelY = safeSquares[i, 0] * SPACING + y0;
                 actions.MoveToElement(canvas, pixelX, pixelY).Click();
             }
-						actions.Build().Perform();
+            actions.Build().Perform();
         }
 
         static int chopRows(sbyte[,] matrix)
@@ -1086,7 +1090,7 @@ namespace Minesweeper_Solver
 
             // need to set targetRow back one to get the correct number of valid rows
             targetRow--;
-						targetRow = Math.Max(targetRow, 0);
+            targetRow = Math.Max(targetRow, 0);
 
             // finally, zero out everything after the target row
             for (int i = targetRow; i < rows; i++)
@@ -1108,7 +1112,7 @@ namespace Minesweeper_Solver
                         break;
                     }
                 }
-								
+
                 // ...chop it
                 if (allZero)
                 {
@@ -1155,8 +1159,8 @@ namespace Minesweeper_Solver
 
         static int bruteForceSolveWithPruning(int[,] safeSquares, sbyte[,] matrix, int[] pointers, out long[] finalSolution)
         {
-						Console.WriteLine($"pointers length={pointers.Length}");
-            if (pointers.Length > 41)
+            Console.WriteLine($"pointers length={pointers.Length}");
+            if (pointers.Length > 20)
             {
                 Console.WriteLine($"solution space too large! ({pointers.Length})");
                 finalSolution = new long[0];
@@ -1391,11 +1395,11 @@ namespace Minesweeper_Solver
                         return false;
             return true;
         }
-				
+
         static int totalGuess(int[,] safeSquares, int[,] gameState)
         {
-						// TODO: check for obvious mines
-						
+            // TODO: check for obvious mines
+
             int rows = gameState.GetLength(0);
             int cols = gameState.GetLength(1);
             // we need to find a square
@@ -1404,9 +1408,9 @@ namespace Minesweeper_Solver
             {
                 for (int j = 1; j < cols - 1; j++)
                 {
-										if (gameState[i, j] != -1)
-											continue;
-										
+                    if (gameState[i, j] != -1)
+                        continue;
+
                     // we found a good square -> return it
                     safeSquares[0, 0] = i;
                     safeSquares[0, 1] = j;
