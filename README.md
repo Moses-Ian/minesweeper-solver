@@ -16,6 +16,9 @@ https://moses-ian.github.io/minesweeper-solver/
 You can download the bot here:
 [Download](https://ians-cool-s3-bucket.s3.us-west-1.amazonaws.com/Minesweeper-Solver-Download-Package.zip)
 
+You can watch a recording of the bot here:
+https://youtu.be/vQREam06O2M
+
 ## Usage
 
 You can play the game yourself, like normal.
