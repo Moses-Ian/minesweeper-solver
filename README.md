@@ -14,7 +14,7 @@ You can view the deployed page here:
 https://moses-ian.github.io/minesweeper-solver/
 
 You can download the bot here:
-[https://github.com/Moses-Ian/minesweeper-solver/raw/main/Minesweeper-Solver.exe](Download)
+[Download](https://ians-cool-s3-bucket.s3.us-west-1.amazonaws.com/Minesweeper-Solver-Download-Package.zip)
 
 ## Usage
 
