@@ -77,10 +77,7 @@ function draw() {
 	squaresLeftP.html(`Squares left: ${squaresLeft}`);
 	
 	if (squaresLeft == MINES) {
-		let p = createP("Finished! :)");
-		p.class('finished');
-		p.parent("sketch-container");
-		noLoop();
+		winGame();
 	}
 }
 
@@ -171,6 +168,14 @@ function moveMines(x, y) {
 	}	
 }
 
+function winGame() {
+	let p = createP("Finished! :)");
+	p.class('finished');
+	p.parent("sketch-container");
+	noLoop();
+	setStatistics("win");
+}
+
 function gameOver() {
 	for(let i=0; i<ROWS; i++) {
 		for(let j=0; j<COLS; j++) {
@@ -182,6 +187,7 @@ function gameOver() {
 	p.class('game-over');
 	p.parent("sketch-container");
 	noLoop();
+	setStatistics("lose");
 }
 
 function countSquares() {
@@ -193,4 +199,20 @@ function countSquares() {
 		}
 	}
 	return count;
+}
+
+function setStatistics(gameResult) {
+	let gamesPlayed = localStorage.getItem("games-played") || 0;
+	gamesPlayed++;
+	let gamesWon = localStorage.getItem("games-won") || 0;
+	if (gameResult == "win")
+		gamesWon++;
+	let winRate = `${(gamesWon/gamesPlayed*100).toFixed(2)}%`;
+	localStorage.setItem("games-played", gamesPlayed);
+	localStorage.setItem("games-won", gamesWon);
+	localStorage.setItem("win-rate", winRate);
+
+	document.getElementById("games-played").innerText = gamesPlayed;
+	document.getElementById("games-won").innerText = gamesWon;
+	document.getElementById("win-rate").innerText = winRate;
 }
