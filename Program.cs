@@ -14,6 +14,7 @@ using WebDriverManager.DriverConfigs.Impl;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Interactions;
+using OpenQA.Selenium.Support.Extensions;
 
 namespace Minesweeper_Solver
 {
@@ -109,11 +110,14 @@ namespace Minesweeper_Solver
             int canvasCenterX = canvasWidth / 2;
             int canvasCenterY = canvasHeight / 2;
 
-            x0 = -canvasCenterX;
-            y0 = -canvasCenterY;
+            x0 = canvas.Location.X;
+            y0 = canvas.Location.Y;
+            //x0 = -canvasCenterX;
+            //y0 = -canvasCenterY;
 
             int canvasX = canvas.Location.X;
             int canvasY = canvas.Location.Y;
+            driver.ExecuteJavaScript($"console.log('{canvasX}, {canvasY}, {canvasWidth}, {canvasHeight}');");
 
             // setup matrices
             gameState = new int[HEIGHT, WIDTH];
@@ -126,6 +130,8 @@ namespace Minesweeper_Solver
 
         static void playTheGame()
         {
+            driver.ExecuteJavaScript("console.log('hello');");
+
             // find the canvas after every refresh
             Console.WriteLine("getting the canvas...");
             canvas = driver.FindElement(By.Id("defaultCanvas0"));
@@ -991,8 +997,12 @@ namespace Minesweeper_Solver
             Actions actions = new Actions(driver);
             for (int i = 0; i < count; i++)
             {
-                int pixelX = safeSquares[i, 1] * SPACING + x0;
-                int pixelY = safeSquares[i, 0] * SPACING + y0;
+                //int pixelX = safeSquares[i, 1] * SPACING + x0 + SPACING / 2;
+                //int pixelY = safeSquares[i, 0] * SPACING + y0 + SPACING / 2;
+                int pixelX = safeSquares[i, 1] * SPACING + SPACING / 2;
+                int pixelY = safeSquares[i, 0] * SPACING + SPACING / 2;
+                driver.ExecuteJavaScript($"console.log('Square {safeSquares[i, 0]}, {safeSquares[i, 1]} is safe');");
+                driver.ExecuteJavaScript($"console.log('Clicking {pixelX}, {pixelY}');");
                 actions.MoveToElement(canvas, pixelX, pixelY).Click();
             }
             actions.Build().Perform();
