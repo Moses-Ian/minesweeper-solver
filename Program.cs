@@ -28,7 +28,7 @@ namespace Minesweeper_Solver
         // static sbyte MINES = 15;
         static int SPACING = 20;
         static string ProcessLocation = @".\\chromedriver";
-        // static string ProcessURL = Path.GetFullPath(@".\\p5-minesweeper\\index.html?bot=true");
+        //static string ProcessURL = Path.GetFullPath(@"..\\p5-minesweeper\\index.html?bot=true");
         static string ProcessURL = @"https://moses-ian.github.io/minesweeper-solver/?bot=true";
         static string ChromeLocation = @".\\chrome\\chrome.exe";
         static bool HIDE_CONSOLE = true;
@@ -110,10 +110,9 @@ namespace Minesweeper_Solver
             int canvasCenterX = canvasWidth / 2;
             int canvasCenterY = canvasHeight / 2;
 
-            x0 = canvas.Location.X;
-            y0 = canvas.Location.Y;
-            //x0 = -canvasCenterX;
-            //y0 = -canvasCenterY;
+            // 0,0 is the center of the canvas
+            x0 = -canvasCenterX;
+            y0 = -canvasCenterY;
 
             int canvasX = canvas.Location.X;
             int canvasY = canvas.Location.Y;
@@ -997,10 +996,8 @@ namespace Minesweeper_Solver
             Actions actions = new Actions(driver);
             for (int i = 0; i < count; i++)
             {
-                //int pixelX = safeSquares[i, 1] * SPACING + x0 + SPACING / 2;
-                //int pixelY = safeSquares[i, 0] * SPACING + y0 + SPACING / 2;
-                int pixelX = safeSquares[i, 1] * SPACING + SPACING / 2;
-                int pixelY = safeSquares[i, 0] * SPACING + SPACING / 2;
+                int pixelX = safeSquares[i, 1] * SPACING + x0 + SPACING / 2;
+                int pixelY = safeSquares[i, 0] * SPACING + y0 + SPACING / 2;
                 driver.ExecuteJavaScript($"console.log('Square {safeSquares[i, 0]}, {safeSquares[i, 1]} is safe');");
                 driver.ExecuteJavaScript($"console.log('Clicking {pixelX}, {pixelY}');");
                 actions.MoveToElement(canvas, pixelX, pixelY).Click();
