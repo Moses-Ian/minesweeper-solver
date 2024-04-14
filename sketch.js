@@ -102,6 +102,7 @@ function fillMines(arr) {
 }
 
 function getCell(x, y) {
+	console.log(`Getting cell at pixel coords ${x} ${y} -> cell ${Math.floor(y / W)} ${Math.floor(x / W) }`);
 	return grid[Math.floor(y/W)][Math.floor(x/W)];
 }
 
